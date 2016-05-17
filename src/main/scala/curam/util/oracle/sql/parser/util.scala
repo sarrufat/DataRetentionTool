@@ -1,4 +1,4 @@
-package com.sirec.sql.util
+package curam.util.oracle.sql.parser
 
 trait PrettyPrinters {
   // TODO: escape
