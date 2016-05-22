@@ -17,6 +17,8 @@ case class Varchar2Type(len: Int) extends CharacterType
 
 trait NumType extends OracleBuiltIntDatatype
 case class NumberType(scale: Int, precision: Int) extends NumType
+trait IntegerType extends NumType
+trait SmallIntType extends NumType
 
 trait DateTimeTypes extends OracleBuiltIntDatatype
 
@@ -41,4 +43,18 @@ case class CreateIndexStmt(id: String, table: String, unique: Boolean, cols: Seq
 trait CreateTableExpr extends Node {
   def getTable: String
   def getBody: String
+}
+
+object Statement {
+  // Selects statements by type
+  def filter[T](stmts: Seq[Statement])(implicit m: Manifest[T]) = { stmts.filter { x ⇒ m.erasure.isInstance(x) } map { x ⇒ x.asInstanceOf[T] } }
+  // Find CreateStmt by table id
+  def findTable(stmts: Seq[CreateStmt], table: String) = stmts.find { ct ⇒ ct.table == table }
+}
+
+object Comparator {
+  def findNewTables(current: Seq[CreateStmt], target: Seq[CreateStmt]) = for {
+    t ← target
+    if (Statement.findTable(current, t.table) == None)
+  } yield t
 }

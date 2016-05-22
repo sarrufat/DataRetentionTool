@@ -4,32 +4,29 @@ import scala.util.parsing.combinator.lexical._
 import scala.util.parsing.combinator.syntactical._
 import scala.util.parsing.input.CharArrayReader.EofCh
 import scala.util.parsing.combinator.RegexParsers
+import scala.util.parsing.input.StreamReader
+import java.io.File
 
 class SQLParser extends StandardTokenParsers {
-  class SqlLexical extends StdLexical {
-    case class FloatLit(chars: String) extends Token {
-      override def toString = chars
-    }
-    override def token: Parser[Token] =
-      (identChar ~ rep(identChar | digit) ^^ { case first ~ rest ⇒ processIdent(first :: rest mkString "") }
-        | rep1(digit) ~ opt('.' ~> rep(digit)) ^^ {
-          case i ~ None    ⇒ NumericLit(i mkString "")
-          case i ~ Some(d) ⇒ FloatLit(i.mkString("") + "." + d.mkString(""))
-        }
-        | '\'' ~ rep(chrExcept('\'', '\n', EofCh)) ~ '\'' ^^ { case '\'' ~ chars ~ '\'' ⇒ StringLit(chars mkString "") }
-        | '\"' ~ rep(chrExcept('\"', '\n', EofCh)) ~ '\"' ^^ { case '\"' ~ chars ~ '\"' ⇒ StringLit(chars mkString "") }
-        | EofCh ^^^ EOF
-        | '\'' ~> failure("unclosed string literal")
-        | '\"' ~> failure("unclosed string literal")
-        | delim
-        | failure("illegal character"))
+  class ThisLexical extends StdLexical {
+    override def whitespace: Parser[Any] = rep[Any](
+      whitespaceChar
+        | '/' ~ '*' ~ comment
+        | '/' ~ '/' ~ rep(chrExcept(EofCh, '\n'))
+        | '/' ~ '*' ~ failure("unclosed comment")
+        | '-' ~ '-' ~ chrExcept(EofCh, '\n').*)
   }
-  lexical.reserved += ("CREATE", "TABLE", "CHAR", "NUMBER", "CONSTRAINT", "UNIQUE", "NULL", "NOT", "VARCHAR", "VARCHAR2", "DATE", "BLOB", "CLOB", "ALTER", "ADD", "PRIMARY", "KEY", "FOREIGN", "REFERENCES", "INDEX", "ASC", "DESC", "ON")
+
+  override val lexical = new ThisLexical
+
+  lexical.reserved += ("CREATE", "TABLE", "CHAR", "CHARACTER", "NUMBER", "NUMERIC", "CONSTRAINT", "UNIQUE", "null", "not", "VARCHAR", "VARCHAR2", "DATE", "BLOB", "CLOB",
+    "ALTER", "ADD", "PRIMARY", "KEY", "FOREIGN", "REFERENCES", "INDEX", "ASC", "DESC", "ON", "INTEGER", "SMALLINT")
   lexical.delimiters += ("*", "+", "-", "<", "=", "<>", "!=", "<=", ">=", ">", "/", "(", ")", ",", ".", ";")
+
   //  def integer: Parser[Any] = { regex("""\d+""".r) ^^ (_.toInt) }
 
   // Basic Types
-  def charType: Parser[CharType] = "CHAR" ~> opt("(" ~> numericLit <~ ")") ^^ {
+  def charType: Parser[CharType] = ("CHAR" | "CHARACTER") ~> opt("(" ~> numericLit <~ ")") ^^ {
     case None    ⇒ CharType(1)
     case Some(i) ⇒ CharType(i.toInt)
   }
@@ -37,14 +34,17 @@ class SQLParser extends StandardTokenParsers {
 
   def varchar2Type: Parser[Varchar2Type] = "VARCHAR2" ~> "(" ~> numericLit <~ ")" ^^ { case i ⇒ Varchar2Type(i.toInt) }
   def characterType: Parser[CharacterType] = { charType | varcharType | varchar2Type }
-  def numberType: Parser[NumberType] = "NUMBER" ~> opt("(" ~> numericLit ~ opt("," ~> numericLit) <~ ")") ^^ {
+  def numberType: Parser[NumberType] = ("NUMBER" | "NUMERIC") ~> opt("(" ~> numericLit ~ opt("," ~> numericLit) <~ ")") ^^ {
     case None ⇒ NumberType(38, 0)
     case Some(sc) ⇒ sc match {
       case s ~ None    ⇒ NumberType(s.toInt, 0)
       case s ~ Some(p) ⇒ NumberType(s.toInt, p.toInt)
     }
   }
-  def numType: Parser[NumType] = { numberType }
+  def intType: Parser[IntegerType] = "INTEGER" ^^ { i ⇒ new IntegerType {} }
+  def smallIntType: Parser[SmallIntType] = "SMALLINT" ^^ { i ⇒ new SmallIntType {} }
+
+  def numType: Parser[NumType] = { numberType | intType | smallIntType }
   def dateType: Parser[DateType] = "DATE" ^^ { d ⇒ new DateType {} }
   def dateTimeTypes: Parser[DateTimeTypes] = { dateType }
   // def longType: Parser[Any] = { ident }
@@ -57,16 +57,20 @@ class SQLParser extends StandardTokenParsers {
   def referencesClause: Parser[ReferencesClause] = "REFERENCES" ~> ident ~ ("(" ~> repsep(ident, ",") <~ ")") ^^ (x ⇒ ReferencesClause(x._1, x._2))
   def foreignKeyPart: Parser[ForeignKey] = ("FOREIGN" ~> "KEY" ~> "(" ~> repsep(ident, ",") <~ ")") ~ referencesClause ^^ (x ⇒ ForeignKey("", x._1, x._2))
 
-  def inlineConstraint: Parser[InlineConstraint] = opt("CONSTRAINT" ~> ident) ~ ("UNIQUE" | "NULL" | ("NOT" ~ "NULL")) ^^ {
-    case Some(id) ~ ("NOT" ~ "NULL") ⇒ SimpleConstraint(id, "NOT NULL")
+  def inlineConstraint: Parser[InlineConstraint] = opt("CONSTRAINT" ~> ident) ~ ("UNIQUE" | "null" | ("not" ~ "null")) ^^ {
+    case Some(id) ~ ("not" ~ "null") ⇒ SimpleConstraint(id, "NOT NULL")
     case Some(id) ~ c                ⇒ SimpleConstraint(id, c.toString)
-    case None ~ ("NOT" ~ "NULL")     ⇒ SimpleConstraint("", "NOT NULL")
+    case None ~ ("not" ~ "null")     ⇒ SimpleConstraint("", "NOT NULL")
     case None ~ c                    ⇒ SimpleConstraint("", c.toString)
 
   }
   def datatype: Parser[OracleBuiltIntDatatype] = (characterType | numType | dateTimeTypes | lobTypes)
   //~ opt(inlineConstraint) // | longType | datetimeType | lobType | rowIdType
-  def colDef: Parser[ColumnDef] = (ident ~ datatype) ~ opt(inlineConstraint) ^^ { case id ~ dt ~ ct ⇒ ColumnDef(id, dt, ct) }
+  // They use key as identifier in BATCHGROUPTRANSLATION
+  def colDef: Parser[ColumnDef] = ((ident | "KEY") ~ datatype) ~ opt(inlineConstraint) ^^ {
+    case "KEY" ~ dt ~ ct ⇒ ColumnDef("KEY", dt, ct)
+    case id ~ dt ~ ct    ⇒ ColumnDef(id, dt, ct)
+  }
   def relationalProps: Parser[RelationalProps] = "(" ~> repsep(colDef, ",") <~ ")" ^^ (columns ⇒ RelationalProps(columns))
   // CREATE TABLE
   def createTable: Parser[CreateStmt] =
@@ -96,6 +100,13 @@ class SQLParser extends StandardTokenParsers {
   def parse(sql: String): Option[Seq[Statement]] = {
     val upperString = sql.toUpperCase
     phrase(statements)(new lexical.Scanner(upperString)) match {
+      case Success(r, q) ⇒ Option(r)
+      case x             ⇒ println(x); None
+    }
+  }
+  def parse(file: File): Option[Seq[Statement]] = {
+    val input = StreamReader(new java.io.FileReader(file))
+    phrase(statements)(new lexical.Scanner(input)) match {
       case Success(r, q) ⇒ Option(r)
       case x             ⇒ println(x); None
     }

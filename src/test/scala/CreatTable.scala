@@ -6,6 +6,9 @@ import org.scalatest.Inspectors._
 import curam.util.oracle.sql.parser.SQLParser
 import curam.util.oracle.sql.parser.CreateStmt
 import curam.util.oracle.sql.parser.Statement
+import scala.util.parsing.input.StreamReader
+import scala.util.parsing.input.PagedSeqReader
+import curam.util.oracle.sql.parser.Comparator
 
 object CreatTable {
   val c1 = """
@@ -41,13 +44,27 @@ ON BIREPORTCONFIGURATION(REPORTNAME, RECORDSTATUS);
 
 class CreatTable extends FlatSpec {
 
-  "CreateTable" should "return result" in {
+  //  "CreateTable" should "return result" in {
+  //    val parser = new SQLParser
+  //    val r = parser.parse(CreatTable.c1)
+  //    r should not be empty
+  //    r.get should have size 6
+  //    forAll(r.get) { stmt ⇒
+  //      stmt shouldBe a[Statement]
+  //    }
+  //  }
+  "Test create big file" should "past all tests" in {
     val parser = new SQLParser
-    val r = parser.parse(CreatTable.c1)
-    r should not be empty
-    r.get should have size 6
-    forAll(r.get) { stmt ⇒
-      stmt shouldBe a[Statement]
+    val rcurrent = parser.parse(new java.io.File("./src/test/resources//CreateTablesCurrent.sql"))
+    rcurrent should not be empty
+    rcurrent.foreach { stmts ⇒
+      val crestmt = Statement.filter[CreateStmt](stmts)
+      crestmt should not be empty
+      crestmt.size should be > 1000
+      Statement.findTable(crestmt, "BSFSUBMITROSTERTAB") shouldBe defined
     }
+    val rtarget = parser.parse(new java.io.File("./src/test/resources//CreateTablesTarget.sql"))
+    rtarget should not be empty
+    Comparator.findNewTables(rcurrent.get, rtarget.get) should not be empty
   }
 }
