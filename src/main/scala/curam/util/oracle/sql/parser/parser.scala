@@ -20,7 +20,7 @@ class SQLParser extends StandardTokenParsers {
   override val lexical = new ThisLexical
 
   lexical.reserved += ("CREATE", "TABLE", "CHAR", "CHARACTER", "NUMBER", "NUMERIC", "CONSTRAINT", "UNIQUE", "null", "not", "VARCHAR", "VARCHAR2", "DATE", "BLOB", "CLOB",
-    "ALTER", "ADD", "PRIMARY", "KEY", "FOREIGN", "REFERENCES", "INDEX", "ASC", "DESC", "ON", "INTEGER", "SMALLINT")
+    "ALTER", "ADD", "PRIMARY", "KEY", "FOREIGN", "REFERENCES", "INDEX", "ASC", "DESC", "ON", "INTEGER", "SMALLINT", "INSERT", "INTO", "VALUES", "values")
   lexical.delimiters += ("*", "+", "-", "<", "=", "<>", "!=", "<=", ">=", ">", "/", "(", ")", ",", ".", ";")
 
   //  def integer: Parser[Any] = { regex("""\d+""".r) ^^ (_.toInt) }
@@ -53,8 +53,9 @@ class SQLParser extends StandardTokenParsers {
   def lobTypes: Parser[LobType] = ("BLOB" | "CLOB") ^^ { t ⇒ LobType(t) }
 
   // Constraints
-  def primaryKeyPart: Parser[PrimaryKey] = "PRIMARY" ~> "KEY" ~> "(" ~> repsep(ident, ",") <~ ")" ^^ (cols ⇒ PrimaryKey("", cols))
+  def primaryKeyPart: Parser[PrimaryKey] = "PRIMARY" ~> "KEY" ~> "(" ~> repsep((ident | "KEY"), ",") <~ ")" ^^ (cols ⇒ PrimaryKey("", cols))
   def referencesClause: Parser[ReferencesClause] = "REFERENCES" ~> ident ~ ("(" ~> repsep(ident, ",") <~ ")") ^^ (x ⇒ ReferencesClause(x._1, x._2))
+  def uniqueConstrPart: Parser[UniqueKeyClause] = "UNIQUE" ~> "(" ~> repsep((ident | "KEY"), ",") <~ ")" ^^ (cols ⇒ UniqueKeyClause("", cols))
   def foreignKeyPart: Parser[ForeignKey] = ("FOREIGN" ~> "KEY" ~> "(" ~> repsep(ident, ",") <~ ")") ~ referencesClause ^^ (x ⇒ ForeignKey("", x._1, x._2))
 
   def inlineConstraint: Parser[InlineConstraint] = opt("CONSTRAINT" ~> ident) ~ ("UNIQUE" | "null" | ("not" ~ "null")) ^^ {
@@ -75,9 +76,11 @@ class SQLParser extends StandardTokenParsers {
   // CREATE TABLE
   def createTable: Parser[CreateStmt] =
     "CREATE" ~> "TABLE" ~> ident ~ relationalProps ^^ (x ⇒ CreateStmt(x._1, x._2))
-  def alterConstraint: Parser[AlterConstraint] = opt("CONSTRAINT" ~> ident) ~ (primaryKeyPart | foreignKeyPart) ^^ {
+  def alterConstraint: Parser[AlterConstraint] = opt("CONSTRAINT" ~> ident) ~ (primaryKeyPart | foreignKeyPart | uniqueConstrPart) ^^ {
+    case Some(id) ~ UniqueKeyClause(_, cols) ⇒ UniqueKeyClause(id, cols)
     case Some(id) ~ ForeignKey(_, cols, ref) ⇒ ForeignKey(id, cols, ref)
     case Some(id) ~ PrimaryKey(_, cols)      ⇒ PrimaryKey(id, cols)
+    case None ~ UniqueKeyClause(_, cols)     ⇒ UniqueKeyClause("", cols)
     case None ~ ForeignKey(_, cols, ref)     ⇒ ForeignKey("", cols, ref)
     case None ~ PrimaryKey(_, cols)          ⇒ PrimaryKey("", cols)
   }
@@ -95,7 +98,11 @@ class SQLParser extends StandardTokenParsers {
   }
   // ALTER TABLE
   def alterTable: Parser[AlterTableStmt] = ("ALTER" ~> "TABLE" ~> ident <~ "ADD") ~ alterConstraint ^^ (x ⇒ AlterTableStmt(x._1, x._2))
-  def statement: Parser[Statement] = createTable | alterTable | createIndex
+
+  // def number:  Parser[DummyStatement] = rep(chr
+  def simpleExpr: Parser[DummyStatement] = (stringLit | (opt("-") ~ numericLit) | "null") ^^ (x ⇒ new DummyStatement {})
+  def insertIntoClause: Parser[DummyStatement] = ("INSERT" ~> "INTO" ~> ident ~ "(" ~> repsep(ident, ",") <~ ")" <~ ("VALUES" | "values") ~ "(" ~> repsep(simpleExpr, ",") <~ ")") ^^ (x ⇒ new DummyStatement {})
+  def statement: Parser[Statement] = createTable | alterTable | createIndex | insertIntoClause
   def statements: Parser[Seq[Statement]] = rep(statement <~ ";") ^^ (sts ⇒ sts)
   def parse(sql: String): Option[Seq[Statement]] = {
     val upperString = sql.toUpperCase

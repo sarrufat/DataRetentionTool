@@ -32,18 +32,15 @@ case class RelationalProps(props: Seq[ColumnDef])
 case class CreateStmt(table: String, props: RelationalProps) extends Statement
 
 case class PrimaryKey(constraint: String, columns: Seq[String]) extends AlterConstraint
+case class UniqueKeyClause(constraint: String, columns: Seq[String]) extends AlterConstraint
 case class ReferencesClause(obj: String, columns: Seq[String])
 case class ForeignKey(constraint: String, columns: Seq[String], reference: ReferencesClause) extends AlterConstraint
 case class AlterTableStmt(table: String, const: AlterConstraint) extends Statement
+trait DummyStatement extends Statement
 
 // Create Index
 case class ColIndex(col: String, asc: Boolean)
 case class CreateIndexStmt(id: String, table: String, unique: Boolean, cols: Seq[ColIndex]) extends Statement
-
-trait CreateTableExpr extends Node {
-  def getTable: String
-  def getBody: String
-}
 
 object Statement {
   // Selects statements by type
