@@ -115,7 +115,7 @@ class SQLParser extends StandardTokenParsers {
     val input = StreamReader(new java.io.FileReader(file))
     phrase(statements)(new lexical.Scanner(input)) match {
       case Success(r, q) ⇒ Option(r)
-      case x             ⇒ println(x); None
+      case x             ⇒ println(file.getName + ": " + x); None
     }
   }
 }
