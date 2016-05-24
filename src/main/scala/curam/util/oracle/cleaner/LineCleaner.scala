@@ -10,9 +10,14 @@ object LineCleaner extends App {
   def cleanFile(source: String, output: String) = {
     val ss = Source.fromFile(source)
     val pw = new PrintWriter(new File(output))
+    var skipNext = false
     for (line ← ss.getLines()) {
-      if (!(line.startsWith("INSERT INTO") || line.startsWith("insert into"))) {
+      if (skipNext) {
+        skipNext = false
+      } else if (!(line.startsWith("INSERT INTO") || line.startsWith("insert into"))) {
         pw.println(line)
+      } else if (!line.endsWith(");")) {
+        skipNext = true
       }
     }
     pw.close()
