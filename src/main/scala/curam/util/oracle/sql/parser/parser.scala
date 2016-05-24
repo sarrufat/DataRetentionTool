@@ -85,7 +85,7 @@ class SQLParser extends StandardTokenParsers {
     case None ~ PrimaryKey(_, cols)          ⇒ PrimaryKey("", cols)
   }
   // CREATE INDEX
-  def tabIndxClause: Parser[CreateIndexStmt] = ident ~ ("(" ~> repsep(ident ~ opt("ASC" | "DESC"), ",") <~ ")") ^^ { x ⇒
+  def tabIndxClause: Parser[CreateIndexStmt] = ident ~ ("(" ~> repsep((ident | "KEY") ~ opt("ASC" | "DESC"), ",") <~ ")") ^^ { x ⇒
     val cols = x._2.map {
       case id ~ Some(ord) ⇒ ColIndex(id, if (ord == "ASC") true else false)
       case id ~ None      ⇒ ColIndex(id, true)
