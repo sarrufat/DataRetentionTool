@@ -55,21 +55,21 @@ class CreatTable extends FlatSpec {
   //  }
   "Test create big file" should "past all tests" in {
     val parser = new SQLParser
-    val rcurrent = parser.parse(new java.io.File("./src/test/resources/CreateTablesCurrent.sql"))
+    val rcurrent = parser.parse("./src/test/resources/CTSourceClean.sql")
     rcurrent should not be empty
     rcurrent.foreach { stmts ⇒
       val crestmt = Statement.filter[CreateStmt](stmts)
       crestmt should not be empty
       crestmt.size should be > 1000
-      Statement.findTable(crestmt, "BSFSUBMITROSTERTAB") shouldBe defined
     }
-    val rtarget = parser.parse(new java.io.File("./src/test/resources/CreateTablesTarget.sql"))
+    val rtarget = parser.parse("./src/test/resources/CTTargetClean.sql")
     rtarget should not be empty
+    Statement.findTable(rtarget.get, "BSFSUBMITROSTERTAB") shouldBe defined
     Comparator.findNewTables(rcurrent.get, rtarget.get) should not be empty
   }
-  "Test setup database " should "past all tests" in {
-    val parser = new SQLParser
-    val rupdate = parser.parse(new java.io.File("./src/test/resources/SetupDatabase.sql"))
-    rupdate should not be empty
-  }
+  //  "Test setup database " should "past all tests" in {
+  //    val parser = new SQLParser
+  //    val rupdate = parser.parse("./src/test/resources/CTTargetClean.sql")
+  //    rupdate should not be empty
+  //  }
 }

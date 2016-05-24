@@ -6,6 +6,9 @@ import scala.util.parsing.input.CharArrayReader.EofCh
 import scala.util.parsing.combinator.RegexParsers
 import scala.util.parsing.input.StreamReader
 import java.io.File
+import scala.util.parsing.input.PagedSeqReader
+import scala.io.Source
+import scala.collection.immutable.PagedSeq
 
 class SQLParser extends StandardTokenParsers {
   class ThisLexical extends StdLexical {
@@ -104,18 +107,19 @@ class SQLParser extends StandardTokenParsers {
   def insertIntoClause: Parser[DummyStatement] = ("INSERT" ~> "INTO" ~> ident ~ "(" ~> repsep(ident, ",") <~ ")" <~ ("VALUES" | "values") ~ "(" ~> repsep(simpleExpr, ",") <~ ")") ^^ (x ⇒ new DummyStatement {})
   def statement: Parser[Statement] = createTable | alterTable | createIndex | insertIntoClause
   def statements: Parser[Seq[Statement]] = rep(statement <~ ";") ^^ (sts ⇒ sts)
-  def parse(sql: String): Option[Seq[Statement]] = {
-    val upperString = sql.toUpperCase
-    phrase(statements)(new lexical.Scanner(upperString)) match {
-      case Success(r, q) ⇒ Option(r)
-      case x             ⇒ println(x); None
-    }
-  }
-  def parse(file: File): Option[Seq[Statement]] = {
-    val input = StreamReader(new java.io.FileReader(file))
+  //  def parse(sql: String): Option[Seq[Statement]] = {
+  //    val upperString = sql.toUpperCase
+  //    phrase(statements)(new lexical.Scanner(upperString)) match {
+  //      case Success(r, q) ⇒ Option(r)
+  //      case x             ⇒ println(x); None
+  //    }
+  //  }
+  def parse(file: String): Option[Seq[Statement]] = {
+    // val input = StreamReader(new java.io.FileReader(file))
+    val input = new PagedSeqReader(PagedSeq.fromFile(file))
     phrase(statements)(new lexical.Scanner(input)) match {
       case Success(r, q) ⇒ Option(r)
-      case x             ⇒ println(file.getName + ": " + x); None
+      case x             ⇒ println(file + ": " + x); None
     }
   }
 }
