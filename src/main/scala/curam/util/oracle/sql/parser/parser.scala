@@ -44,11 +44,11 @@ class SQLParser extends StandardTokenParsers {
       case s ~ Some(p) ⇒ NumberType(s.toInt, p.toInt)
     }
   }
-  def intType: Parser[IntegerType] = "INTEGER" ^^ { i ⇒ new IntegerType {} }
-  def smallIntType: Parser[SmallIntType] = "SMALLINT" ^^ { i ⇒ new SmallIntType {} }
+  def intType: Parser[IntegerType] = "INTEGER" ^^ { i ⇒ new IntegerType { def emit = i } }
+  def smallIntType: Parser[SmallIntType] = "SMALLINT" ^^ { i ⇒ new SmallIntType { def emit = i } }
 
   def numType: Parser[NumType] = { numberType | intType | smallIntType }
-  def dateType: Parser[DateType] = "DATE" ^^ { d ⇒ new DateType {} }
+  def dateType: Parser[DateType] = "DATE" ^^ { d ⇒ new DateType { def emit = d } }
   def dateTimeTypes: Parser[DateTimeTypes] = { dateType }
   // def longType: Parser[Any] = { ident }
   //def datetimeType: Parser[Any] = { ident }

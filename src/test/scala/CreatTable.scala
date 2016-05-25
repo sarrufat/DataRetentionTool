@@ -9,50 +9,10 @@ import curam.util.oracle.sql.parser.Statement
 import scala.util.parsing.input.StreamReader
 import scala.util.parsing.input.PagedSeqReader
 import curam.util.oracle.sql.parser.Comparator
+import org.scalatest.GivenWhenThen
+import curam.util.oracle.sql.diff.SQLDiff
 
-object CreatTable {
-  val c1 = """
-CREATE TABLE CREOLEATTRIBUTEINHERITANCE(
-CREOLEATTRIBUTEINHERITANCEID NUMBER(19,0) not null,
-ANCESTORATTRAVAILABILITYID NUMBER(19,0) not null,
-DESCENDANTATTRAVAILABILITYID NUMBER(19,0) not null,
-MIGRATIONACTION VARCHAR(10)
-);
-
-CREATE TABLE BSFDATALOADHISTORY(
-LOADDATE DATE,
-FILENAME VARCHAR(100),
-COMMENTS VARCHAR(255),
-EXCELIMAGE BLOB,
-LOADFILETYPE VARCHAR(10),
-LOADHISTORYID  NUMBER(19,0) not null,
-USERID VARCHAR(64)
-);
-
-ALTER TABLE CREOLEATTRIBUTEINHERITANCE ADD CONSTRAINT FK_CREOLE_CAI_ACAA
-FOREIGN KEY (ANCESTORATTRAVAILABILITYID) REFERENCES CREOLEATTRIBUTEAVAILABILITY(CREOLEATTRIBUTEAVAILABILITYID);
-
-CREATE INDEX FK_CREOLE_CAI_ACAA ON CREOLEATTRIBUTEINHERITANCE(ANCESTORATTRAVAILABILITYID);
-
-ALTER TABLE BSFDATALOADHISTORY ADD
-CONSTRAINT BSFDataLoadHistory PRIMARY KEY(LOADHISTORYID );
-
-CREATE UNIQUE INDEX REPORTNAMESTATUSIDX
-ON BIREPORTCONFIGURATION(REPORTNAME, RECORDSTATUS);
-  """
-}
-
-class CreatTable extends FlatSpec {
-
-  //  "CreateTable" should "return result" in {
-  //    val parser = new SQLParser
-  //    val r = parser.parse(CreatTable.c1)
-  //    r should not be empty
-  //    r.get should have size 6
-  //    forAll(r.get) { stmt ⇒
-  //      stmt shouldBe a[Statement]
-  //    }
-  //  }
+class CreatTable extends FlatSpec with GivenWhenThen {
   "Test create big file" should "past all tests" in {
     val parser = new SQLParser
     val rcurrent = parser.parse("./src/test/resources/CTSourceClean.sql")
@@ -65,11 +25,15 @@ class CreatTable extends FlatSpec {
     val rtarget = parser.parse("./src/test/resources/CTTargetClean.sql")
     rtarget should not be empty
     Statement.findTable(rtarget.get, "BSFSUBMITROSTERTAB") shouldBe defined
-    Comparator.findNewTables(rcurrent.get, rtarget.get) should not be empty
+    Given("two rsult parsers")
+    val creDiff = Comparator.findNewTables(rcurrent.get, rtarget.get)
+    When("findNewTables")
+    creDiff should not be empty
+    Then(SQLDiff.emitNew(creDiff).mkString)
+    When("findAlterTables")
+    val alterDiff = Comparator.findAlterTables(rcurrent.get, rtarget.get)
+    alterDiff should not be empty
+    Then(SQLDiff.emitALters(alterDiff) mkString)
   }
-  //  "Test setup database " should "past all tests" in {
-  //    val parser = new SQLParser
-  //    val rupdate = parser.parse("./src/test/resources/CTTargetClean.sql")
-  //    rupdate should not be empty
-  //  }
+
 }
