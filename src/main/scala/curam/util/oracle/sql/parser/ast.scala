@@ -17,7 +17,8 @@ trait InlineConstraint {
 }
 trait AlterConstraint {
   val constraint: String
-  def compare(act: AlterConstraint): Boolean = constraint == act.constraint
+  def emit: String
+  //  def compare(act: AlterConstraint): Boolean = constraint == act.constraint
 }
 
 case class CharType(len: Int) extends CharacterType {
@@ -110,11 +111,20 @@ case class ColumnDef(column: String, datatype: OracleBuiltIntDatatype, constr: O
 case class RelationalProps(props: Seq[ColumnDef])
 case class CreateStmt(table: String, props: RelationalProps) extends Statement
 
-case class PrimaryKey(constraint: String, columns: Seq[String]) extends AlterConstraint
-case class UniqueKeyClause(constraint: String, columns: Seq[String]) extends AlterConstraint
+case class PrimaryKey(constraint: String, columns: Seq[String]) extends AlterConstraint {
+  def emit: String = s"$constraint PRIMARY KEY(" + columns.mkString(",") + ")"
+}
+case class UniqueKeyClause(constraint: String, columns: Seq[String]) extends AlterConstraint {
+  def emit: String = s"$constraint UNIQUE(" + columns.mkString(",") + ")"
+}
 case class ReferencesClause(obj: String, columns: Seq[String])
-case class ForeignKey(constraint: String, columns: Seq[String], reference: ReferencesClause) extends AlterConstraint
-case class AlterTableStmt(table: String, const: AlterConstraint) extends Statement
+case class ForeignKey(constraint: String, columns: Seq[String], reference: ReferencesClause) extends AlterConstraint {
+  def emit: String = s"$constraint FOREIGN KEY(" + columns.mkString(",") + ")"
+}
+
+case class AlterTableStmt(table: String, const: AlterConstraint) extends Statement {
+  def emit: String = s"ALTER TABLE $table ADD " + const.emit + ";"
+}
 trait DummyStatement extends Statement
 
 // Create Index
@@ -170,12 +180,16 @@ object Comparator {
     } yield AlterDeltaProp(prop)
     retAlters ++ deltaAlters
   }
-  def findAlterTables(current: Seq[CreateStmt], target: Seq[CreateStmt]): Seq[Comparator.AlterTable] = {
-    for {
-      targ ← target
-      curr ← Statement.findTable(current, targ.table)
-      alters = compare(curr, targ)
-      if (alters.size > 0)
-    } yield AlterTable(targ.table, alters)
-  }
+  def findAlterTables(current: Seq[CreateStmt], target: Seq[CreateStmt]): Seq[Comparator.AlterTable] = for {
+    targ ← target
+    curr ← Statement.findTable(current, targ.table)
+    alters = compare(curr, targ)
+    if (alters.size > 0)
+  } yield AlterTable(targ.table, alters)
+
+  def findAlterTabsDiff(current: Seq[AlterTableStmt], target: Seq[AlterTableStmt]): Seq[AlterTableStmt] = for {
+    tgt ← target
+    if (current.find { alter ⇒ alter.table == tgt.table && alter.const.constraint == tgt.const.constraint } == None)
+  } yield tgt
+
 }

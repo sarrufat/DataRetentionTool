@@ -24,16 +24,20 @@ class CreatTable extends FlatSpec with GivenWhenThen {
     }
     val rtarget = parser.parse("./src/test/resources/CTTargetClean.sql")
     rtarget should not be empty
-    Statement.findTable(rtarget.get, "BSFSUBMITROSTERTAB") shouldBe defined
+    Statement.findTable(rtarget, "BSFSUBMITROSTERTAB") shouldBe defined
     Given("two rsult parsers")
-    val creDiff = Comparator.findNewTables(rcurrent.get, rtarget.get)
+    val creDiff = Comparator.findNewTables(rcurrent, rtarget)
     When("findNewTables")
     creDiff should not be empty
     Then(SQLDiff.emitNew(creDiff).mkString)
     When("findAlterTables")
-    val alterDiff = Comparator.findAlterTables(rcurrent.get, rtarget.get)
+    val alterDiff = Comparator.findAlterTables(rcurrent, rtarget)
     alterDiff should not be empty
     Then(SQLDiff.emitALters(alterDiff) mkString)
+    When("findAlterTabsDiff")
+    val alterTabsDiff = Comparator.findAlterTabsDiff(rcurrent, rtarget)
+    Then(SQLDiff.emitALtersTabs(alterTabsDiff) mkString)
+
   }
 
 }
