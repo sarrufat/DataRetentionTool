@@ -37,7 +37,9 @@ class CreatTable extends FlatSpec with GivenWhenThen {
     When("findAlterTabsDiff")
     val alterTabsDiff = Comparator.findAlterTabsDiff(rcurrent, rtarget)
     Then(SQLDiff.emitALtersTabs(alterTabsDiff) mkString)
-
+    When("findCreateIndexDiff")
+    val ctidxDiff = Comparator.findCreateIndexDiff(rcurrent, rtarget)
+    Then(SQLDiff.emitCreIdx(ctidxDiff) mkString)
   }
 
 }

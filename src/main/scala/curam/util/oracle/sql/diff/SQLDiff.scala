@@ -7,6 +7,7 @@ import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
 import curam.util.oracle.sql.parser.AlterTableStmt
+import curam.util.oracle.sql.parser.CreateIndexStmt
 
 object SQLDiff extends App {
   def emitNew(stmts: Seq[CreateStmt]) = for (st ← stmts) yield {
@@ -14,6 +15,7 @@ object SQLDiff extends App {
   }
   def emitALters(alters: Seq[Comparator.AlterTable]): Seq[String] = alters.map { x ⇒ x.emit + "\n" }
   def emitALtersTabs(alters: Seq[AlterTableStmt]): Seq[String] = alters.map { x ⇒ x.emit + "\n\n" }
+  def emitCreIdx(ctxStmts: Seq[CreateIndexStmt]): Seq[String] = ctxStmts.map { ctx ⇒ ctx.emit + "\n\n" }
   assert(args.length == 3)
 
   val writer = new BufferedWriter(new FileWriter(args(2)))
@@ -26,6 +28,8 @@ object SQLDiff extends App {
   writer.write(emitALters(alterTabs) mkString)
   val alterDiff = Comparator.findAlterTabsDiff(sourceStmts, targetStmts)
   writer.write(emitALtersTabs(alterDiff) mkString)
+  val ctidxDiff = Comparator.findCreateIndexDiff(sourceStmts, targetStmts)
+  writer.write(emitCreIdx(ctidxDiff) mkString)
   writer.close
 
 }

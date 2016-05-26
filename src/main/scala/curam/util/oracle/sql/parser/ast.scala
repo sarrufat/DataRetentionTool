@@ -129,7 +129,20 @@ trait DummyStatement extends Statement
 
 // Create Index
 case class ColIndex(col: String, asc: Boolean)
-case class CreateIndexStmt(id: String, table: String, unique: Boolean, cols: Seq[ColIndex]) extends Statement
+case class CreateIndexStmt(id: String, table: String, unique: Boolean, cols: Seq[ColIndex]) extends Statement {
+  def emit: String = {
+    val colPart = (cols.map { x ⇒
+      x.asc match {
+        case true  ⇒ x.col
+        case false ⇒ s"${x.col} DESC"
+      }
+    }).mkString(", ")
+    unique match {
+      case true  ⇒ s"CREATE UNIQUE INDEX $id ON $table ($colPart);"
+      case false ⇒ s"CREATE INDEX $id ON $table ($colPart);"
+    }
+  }
+}
 
 object Statement {
   // Selects statements by type
@@ -191,5 +204,8 @@ object Comparator {
     tgt ← target
     if (current.find { alter ⇒ alter.table == tgt.table && alter.const.constraint == tgt.const.constraint } == None)
   } yield tgt
-
+  def findCreateIndexDiff(current: Seq[CreateIndexStmt], target: Seq[CreateIndexStmt]): Seq[CreateIndexStmt] = for {
+    tgt ← target
+    if (current.find { ctx ⇒ ctx.id == ctx.id && ctx.table == tgt.table } == None)
+  } yield tgt
 }
