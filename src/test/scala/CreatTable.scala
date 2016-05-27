@@ -11,8 +11,17 @@ import scala.util.parsing.input.PagedSeqReader
 import curam.util.oracle.sql.parser.Comparator
 import org.scalatest.GivenWhenThen
 import curam.util.oracle.sql.diff.SQLDiff
+import java.io.File
 
 class CreatTable extends FlatSpec with GivenWhenThen {
+  def getListOfFiles(dir: String): List[File] = {
+    val d = new File(dir)
+    if (d.exists && d.isDirectory) {
+      d.listFiles.filter(_.isFile).toList
+    } else {
+      List[File]()
+    }
+  }
   "Test create big file" should "past all tests" in {
     val parser = new SQLParser
     val rcurrent = parser.parse("./src/test/resources/CTSourceClean.sql")
@@ -40,6 +49,16 @@ class CreatTable extends FlatSpec with GivenWhenThen {
     When("findCreateIndexDiff")
     val ctidxDiff = Comparator.findCreateIndexDiff(rcurrent, rtarget)
     Then(SQLDiff.emitCreIdx(ctidxDiff) mkString)
+  }
+  "Test INSERTS" should "past all tests" in {
+    val CTFiles = getListOfFiles("./src/test/resources/codetable")
+    CTFiles.foreach { file ⇒
+      When(file.getName)
+      val parser = new SQLParser
+      val inserts = parser.parse(file.getPath)
+      inserts should not be empty
+    }
+
   }
 
 }

@@ -9,6 +9,10 @@ import java.io.FileWriter
 import curam.util.oracle.sql.parser.AlterTableStmt
 import curam.util.oracle.sql.parser.CreateIndexStmt
 
+/**
+ * SQLDiff, compare create and alters DDL statemens and generates diff DDL
+ * args: source_file, target_file, output_file
+ */
 object SQLDiff extends App {
   def emitNew(stmts: Seq[CreateStmt]) = for (st ← stmts) yield {
     s"CREATE TABLE ${st.table} (\n" + (st.props.props.map { x ⇒ x.emit }).mkString(",\n") + ");\n\n"

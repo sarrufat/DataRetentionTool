@@ -12,22 +12,43 @@ import scala.collection.immutable.PagedSeq
 
 class SQLParser extends StandardTokenParsers {
   class ThisLexical extends StdLexical {
+    case class FloatLit(chars: String) extends Token {
+      override def toString = chars
+    }
     override def whitespace: Parser[Any] = rep[Any](
       whitespaceChar
         | '/' ~ '*' ~ comment
         | '/' ~ '/' ~ rep(chrExcept(EofCh, '\n'))
         | '/' ~ '*' ~ failure("unclosed comment")
         | '-' ~ '-' ~ chrExcept(EofCh, '\n').*)
+    override def token: Parser[Token] =
+      (identChar ~ rep(identChar | digit) ^^ { case first ~ rest ⇒ processIdent(first :: rest mkString "") }
+        | rep1(digit) ~ opt('.' ~> rep(digit)) ^^ {
+          case i ~ None    ⇒ NumericLit(i mkString "")
+          case i ~ Some(d) ⇒ FloatLit(i.mkString("") + "." + d.mkString(""))
+        }
+        | '\'' ~ rep(chrExcept('\'', EofCh)) ~ '\'' ^^ { case '\'' ~ chars ~ '\'' ⇒ StringLit(chars mkString "") }
+        | '\"' ~ rep(chrExcept('\"', '\n', EofCh)) ~ '\"' ^^ { case '\"' ~ chars ~ '\"' ⇒ StringLit(chars mkString "") }
+        | EofCh ^^^ EOF
+        | '\'' ~> failure("unclosed string literal")
+        | '\"' ~> failure("unclosed string literal")
+        | delim
+        | failure("illegal character"))
   }
 
   override val lexical = new ThisLexical
 
   lexical.reserved += ("CREATE", "TABLE", "CHAR", "CHARACTER", "NUMBER", "NUMERIC", "CONSTRAINT", "UNIQUE", "null", "not", "VARCHAR", "VARCHAR2", "DATE", "BLOB", "CLOB",
-    "ALTER", "ADD", "PRIMARY", "KEY", "FOREIGN", "REFERENCES", "INDEX", "ASC", "DESC", "ON", "INTEGER", "SMALLINT", "INSERT", "INTO", "VALUES", "values")
+    "ALTER", "ADD", "PRIMARY", "KEY", "FOREIGN", "REFERENCES", "INDEX", "ASC", "DESC", "ON", "INTEGER", "SMALLINT", "INSERT", "INTO", "VALUES", "values", "CURRENT_TIMESTAMP")
   lexical.delimiters += ("*", "+", "-", "<", "=", "<>", "!=", "<=", ">=", ">", "/", "(", ")", ",", ".", ";")
 
   //  def integer: Parser[Any] = { regex("""\d+""".r) ^^ (_.toInt) }
-
+  def floatLit: Parser[String] =
+    elem("decimal", _.isInstanceOf[lexical.FloatLit]) ^^ (_.chars)
+  def literal: Parser[Any] =
+    numericLit ^^ { case i ⇒ i.toInt } |
+      floatLit ^^ { case f ⇒ f.toDouble } |
+      stringLit ^^ { case s ⇒ s }
   // Basic Types
   def charType: Parser[CharType] = ("CHAR" | "CHARACTER") ~> opt("(" ~> numericLit <~ ")") ^^ {
     case None    ⇒ CharType(1)
@@ -103,8 +124,22 @@ class SQLParser extends StandardTokenParsers {
   def alterTable: Parser[AlterTableStmt] = ("ALTER" ~> "TABLE" ~> ident <~ "ADD") ~ alterConstraint ^^ (x ⇒ AlterTableStmt(x._1, x._2))
 
   // def number:  Parser[DummyStatement] = rep(chr
-  def simpleExpr: Parser[DummyStatement] = (stringLit | (opt("-") ~ numericLit) | "null") ^^ (x ⇒ new DummyStatement {})
-  def insertIntoClause: Parser[DummyStatement] = ("INSERT" ~> "INTO" ~> ident ~ "(" ~> repsep(ident, ",") <~ ")" <~ ("VALUES" | "values") ~ "(" ~> repsep(simpleExpr, ",") <~ ")") ^^ (x ⇒ new DummyStatement {})
+  // DATE TIME FUNCTIONS
+  def currendTimeStamp: Parser[String] = "CURRENT_TIMESTAMP" ~ opt("(" ~> stringLit <~ ")") ^^ (x ⇒ "SYSDATE")
+  def dateTimeFunc: Parser[String] = currendTimeStamp
+  // Text literal
+  def tripleSTLit: Parser[String] = stringLit ~ stringLit ~ stringLit ^^ (x ⇒ x._1._1 + x._1._2 + x._2)
+  def doubleSTLit: Parser[String] = stringLit ~ stringLit ^^ (x ⇒ x._1 + x._2)
+  def numlitsig = opt("-") ~ numericLit ^^ {
+    case Some(s) ~ num ⇒ "-" + numericLit
+    case None ~ num    ⇒ num
+  }
+  def simpleExpr: Parser[String] = (tripleSTLit | doubleSTLit | stringLit | numlitsig | "null" | dateTimeFunc) ^^ (x ⇒ x)
+  def insertIntoClause2 = "(" ~> repsep(ident, ",") <~ ")"
+
+  def insertIntoClause1 = "INSERT" ~> "INTO" ~> ident ~ insertIntoClause2 ^^ { x ⇒ InsertIntoStmt(x._1, x._2) }
+  def insertIntoClause: Parser[InsertIntoStmt] = insertIntoClause1 ~ (("VALUES" | "values") ~ "(") ~ repsep(simpleExpr, ",") ~ ")" ^^ { x ⇒ InsertIntoStmt(x._1._1._1.table, x._1._1._1.properties, x._1._2) }
+
   def statement: Parser[Statement] = createTable | alterTable | createIndex | insertIntoClause
   def statements: Parser[Seq[Statement]] = rep(statement <~ ";") ^^ (sts ⇒ sts)
   //  def parse(sql: String): Option[Seq[Statement]] = {
@@ -116,6 +151,14 @@ class SQLParser extends StandardTokenParsers {
   //  }
   def parse(file: String): Option[Seq[Statement]] = {
     // val input = StreamReader(new java.io.FileReader(file))
+    val input = new PagedSeqReader(PagedSeq.fromFile(file))
+    phrase(statements)(new lexical.Scanner(input)) match {
+      case Success(r, q) ⇒ Option(r)
+      case x             ⇒ println(file + ": " + x); None
+    }
+  }
+
+  def parse(file: File): Option[Seq[Statement]] = {
     val input = new PagedSeqReader(PagedSeq.fromFile(file))
     phrase(statements)(new lexical.Scanner(input)) match {
       case Success(r, q) ⇒ Option(r)

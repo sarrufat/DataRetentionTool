@@ -127,6 +127,8 @@ case class AlterTableStmt(table: String, const: AlterConstraint) extends Stateme
 }
 trait DummyStatement extends Statement
 
+case class InsertIntoStmt(table: String, properties: Seq[String], values: Seq[String] = Seq()) extends Statement
+
 // Create Index
 case class ColIndex(col: String, asc: Boolean)
 case class CreateIndexStmt(id: String, table: String, unique: Boolean, cols: Seq[ColIndex]) extends Statement {
