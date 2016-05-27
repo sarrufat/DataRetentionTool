@@ -8,7 +8,7 @@ import curam.util.oracle.sql.parser.SQLParser
  * args: source_folder, target_foulder, file_output
  *
  */
-class CodeTableDiff extends App {
+object CodeTableDiff extends App {
 
   def checkFolder(folder: String): List[File] = {
     val fold = new File(folder)
