@@ -127,7 +127,12 @@ case class AlterTableStmt(table: String, const: AlterConstraint) extends Stateme
 }
 trait DummyStatement extends Statement
 
-case class InsertIntoStmt(table: String, properties: Seq[String], values: Seq[String] = Seq()) extends Statement
+case class InsertIntoStmt(table: String, properties: Seq[String], values: Seq[String] = Seq()) extends Statement {
+  private lazy val propMap = properties.zip(values) toMap
+  def getValue(prop: String) = propMap.getOrElse(prop, "")
+
+  def allValuesAreEqual(other: InsertIntoStmt) = propMap.toSeq.diff(other.propMap.toSeq).isEmpty
+}
 
 // Create Index
 case class ColIndex(col: String, asc: Boolean)
@@ -153,8 +158,13 @@ object Statement {
   def findTable(stmts: Seq[CreateStmt], table: String) = stmts.find { ct ⇒ ct.table == table }
 }
 
+case class PrimaryKeyDef(table: String, columns: Seq[String])
+
 object Comparator {
   trait Alter
+  trait WriteDelta
+  case class WriteInsert(insert: InsertIntoStmt) extends WriteDelta
+  case class WrtieUpdate(insert: InsertIntoStmt) extends WriteDelta
   case class AlterNewProp(coldef: ColumnDef) extends Alter
   case class AlterDeltaProp(coldef: ColumnDef) extends Alter
   case class AlterTable(table: String, alters: Seq[Alter]) {
@@ -210,4 +220,9 @@ object Comparator {
     tgt ← target
     if (current.find { ctx ⇒ ctx.id == ctx.id && ctx.table == tgt.table } == None)
   } yield tgt
+
+  def diffInsertInto(current: Seq[InsertIntoStmt], target: Seq[InsertIntoStmt], pks: Seq[PrimaryKeyDef]): Seq[WriteDelta] = {
+
+    ???
+  }
 }
