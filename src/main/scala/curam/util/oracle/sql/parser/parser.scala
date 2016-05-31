@@ -134,11 +134,12 @@ class SQLParser extends StandardTokenParsers {
     case Some(s) ~ num ⇒ "-" + numericLit
     case None ~ num    ⇒ num
   }
-  def simpleExpr: Parser[String] = (tripleSTLit | doubleSTLit | stringLit | numlitsig | "null" | dateTimeFunc) ^^ (x ⇒ x)
+  def stringWQ = (tripleSTLit | doubleSTLit | stringLit) ^^ { str ⇒ "'" + str + "'" }
+  def simpleExpr: Parser[String] = (stringWQ | numlitsig | "null" | dateTimeFunc) ^^ (x ⇒ x)
   def insertIntoClause2 = "(" ~> repsep(ident, ",") <~ ")"
 
-  def insertIntoClause1 = "INSERT" ~> "INTO" ~> ident ~ insertIntoClause2 ^^ { x ⇒ InsertIntoStmt(x._1, x._2) }
-  def insertIntoClause: Parser[InsertIntoStmt] = insertIntoClause1 ~ (("VALUES" | "values") ~ "(") ~ repsep(simpleExpr, ",") ~ ")" ^^ { x ⇒ InsertIntoStmt(x._1._1._1.table, x._1._1._1.properties, x._1._2) }
+  def insertIntoClause1 = "INSERT" ~> "INTO" ~> ident ~ insertIntoClause2 ^^ { x ⇒ InsertIntoStmt(x._1, x._2.map { x ⇒ x.toUpperCase }) }
+  def insertIntoClause: Parser[InsertIntoStmt] = insertIntoClause1 ~ (("VALUES" | "values") ~ "(") ~ repsep(simpleExpr, ",") ~ ")" ^^ { x ⇒ InsertIntoStmt(x._1._1._1.table.toUpperCase, x._1._1._1.properties, x._1._2) }
 
   def statement: Parser[Statement] = createTable | alterTable | createIndex | insertIntoClause
   def statements: Parser[Seq[Statement]] = rep(statement <~ ";") ^^ (sts ⇒ sts)

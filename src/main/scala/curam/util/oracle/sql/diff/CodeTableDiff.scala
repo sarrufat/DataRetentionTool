@@ -16,6 +16,9 @@ import java.io.FileWriter
  */
 object CodeTableDiff extends App {
 
+  def emit(writers: Seq[Comparator.WriteDelta], bwr: BufferedWriter) = {
+    writers.foreach { wr ⇒ bwr.write(wr.emit + "\n") }
+  }
   val pks = Seq(PrimaryKeyDef("CODETABLEDATA", Seq("TABLENAME", "LOCALEIDENTIFIER")),
     PrimaryKeyDef("CODETABLEHEADER", Seq("TABLENAME")),
     PrimaryKeyDef("CODETABLEHIERARCHY", Seq("HIERARCHYNAME")),
@@ -39,16 +42,9 @@ object CodeTableDiff extends App {
   val sourceStmts: Seq[InsertIntoStmt] = parserFiles(sourceFiles)
   val targetStmts: Seq[InsertIntoStmt] = parserFiles(targetFiles)
   val memoryDB = new MemoryDB(pks, sourceStmts)
-  val diff: Seq[Comparator.WriteDelta] = for {
-    target ← targetStmts
-    found = memoryDB.find(target)
-    if (found == None || !target.allValuesAreEqual(found.get))
-  } yield {
-    found match {
-      case None    ⇒ Comparator.WriteInsert(target)
-      case Some(x) ⇒ Comparator.WrtieUpdate(target)
-    }
-  }
-  // val writer = new BufferedWriter(new FileWriter(args(2)))
+  val diff = memoryDB.diff(targetStmts)
+  val writer = new BufferedWriter(new FileWriter(args(2)))
   println(s"Found ${diff.size} differences")
+  emit(diff, writer)
+  writer.close
 }

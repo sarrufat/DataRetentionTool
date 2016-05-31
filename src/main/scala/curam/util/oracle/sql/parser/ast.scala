@@ -131,7 +131,10 @@ case class InsertIntoStmt(table: String, properties: Seq[String], values: Seq[St
   private lazy val propMap = properties.zip(values) toMap
   def getValue(prop: String) = propMap.getOrElse(prop, "")
 
-  def allValuesAreEqual(other: InsertIntoStmt) = propMap.toSeq.diff(other.propMap.toSeq).isEmpty
+  def allValuesAreEqual(other: InsertIntoStmt) = {
+    val otherSeq = other.propMap.toSeq
+    propMap.toSeq.forall(prop ⇒ otherSeq.exists(p ⇒ p._1 == prop._1 && p._2 == prop._2))
+  }
 }
 
 // Create Index
@@ -162,9 +165,26 @@ case class PrimaryKeyDef(table: String, columns: Seq[String])
 
 object Comparator {
   trait Alter
-  trait WriteDelta
-  case class WriteInsert(insert: InsertIntoStmt) extends WriteDelta
-  case class WrtieUpdate(insert: InsertIntoStmt) extends WriteDelta
+  trait WriteDelta {
+    def emit: String
+  }
+  case class WriteInsert(insert: InsertIntoStmt) extends WriteDelta {
+    private lazy val props = insert.properties.mkString(",")
+    private lazy val values = insert.values.mkString(",")
+    def emit: String = s"INSERT INTO ${insert.table} (${props}) VALUES(${values});"
+  }
+  case class WrtieUpdate(insert: InsertIntoStmt, opk: Option[PrimaryKeyDef]) extends WriteDelta {
+    def emit: String = {
+      opk match {
+        case Some(pk) ⇒ {
+          val setPairs = insert.properties.zip(insert.values).filterNot(p ⇒ pk.columns.contains(p._1)) map (s ⇒ s._1 + " = " + s._2) mkString (", ")
+          val wherePairs = insert.properties.zip(insert.values).filter(p ⇒ pk.columns.contains(p._1)) map (s ⇒ s._1 + " = " + s._2) mkString (" AND ")
+          s"UPDATE ${insert.table} SET $setPairs WHERE $wherePairs;"
+        }
+        case None ⇒ s"-- Error no PK on UPDATE table: ${insert.table}"
+      }
+    }
+  }
   case class AlterNewProp(coldef: ColumnDef) extends Alter
   case class AlterDeltaProp(coldef: ColumnDef) extends Alter
   case class AlterTable(table: String, alters: Seq[Alter]) {
