@@ -17,6 +17,7 @@ trait InlineConstraint {
 }
 trait AlterConstraint {
   val constraint: String
+  def emitConstraint: String = if (constraint != null && "" != constraint) s"CONSTRAINT $constraint" else ""
   def emit: String
   //  def compare(act: AlterConstraint): Boolean = constraint == act.constraint
 }
@@ -112,14 +113,14 @@ case class RelationalProps(props: Seq[ColumnDef])
 case class CreateStmt(table: String, props: RelationalProps) extends Statement
 
 case class PrimaryKey(constraint: String, columns: Seq[String]) extends AlterConstraint {
-  def emit: String = s"$constraint PRIMARY KEY(" + columns.mkString(",") + ")"
+  def emit: String = s"${emitConstraint} PRIMARY KEY(" + columns.mkString(",") + ")"
 }
 case class UniqueKeyClause(constraint: String, columns: Seq[String]) extends AlterConstraint {
-  def emit: String = s"$constraint UNIQUE(" + columns.mkString(",") + ")"
+  def emit: String = s"${emitConstraint}UNIQUE(" + columns.mkString(",") + ")"
 }
 case class ReferencesClause(obj: String, columns: Seq[String])
 case class ForeignKey(constraint: String, columns: Seq[String], reference: ReferencesClause) extends AlterConstraint {
-  def emit: String = s"$constraint FOREIGN KEY(" + columns.mkString(",") + ")"
+  def emit: String = s"${emitConstraint} FOREIGN KEY(" + columns.mkString(",") + ")"
 }
 
 case class AlterTableStmt(table: String, const: AlterConstraint) extends Statement {
