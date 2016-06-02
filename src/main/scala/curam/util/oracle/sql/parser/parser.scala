@@ -81,7 +81,8 @@ class SQLParser extends StandardTokenParsers {
   override val lexical = new ThisLexical
 
   lexical.reserved += ("CREATE", "TABLE", "CHAR", "CHARACTER", "NUMBER", "NUMERIC", "CONSTRAINT", "UNIQUE", "null", "not", "VARCHAR", "VARCHAR2", "DATE", "BLOB", "CLOB",
-    "ALTER", "ADD", "PRIMARY", "KEY", "FOREIGN", "REFERENCES", "INDEX", "ASC", "DESC", "ON", "INTEGER", "SMALLINT", "INSERT", "INTO", "VALUES", "values", "CURRENT_TIMESTAMP", "chr")
+    "ALTER", "ADD", "PRIMARY", "KEY", "FOREIGN", "REFERENCES", "INDEX", "ASC", "DESC", "ON", "INTEGER", "SMALLINT", "INSERT", "INTO",
+    "VALUES", "values", "CURRENT_TIMESTAMP", "chr", "SYSDATE")
   lexical.delimiters += ("*", "+", "-", "<", "=", "<>", "!=", "<=", ">=", ">", "/", "(", ")", ",", ".", ";", "||")
 
   //  def integer: Parser[Any] = { regex("""\d+""".r) ^^ (_.toInt) }
