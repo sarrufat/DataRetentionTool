@@ -24,14 +24,14 @@ class CreatTable extends FlatSpec with GivenWhenThen {
   }
   "Test create big file" should "past all tests" in {
     val parser = new SQLParser
-    val rcurrent = parser.parse("./src/test/resources/CTSourceClean.sql")
+    val rcurrent = parser.parse("./src/test/resources/CTSource.sql")
     rcurrent should not be empty
     rcurrent.foreach { stmts ⇒
       val crestmt = Statement.filter[CreateStmt](stmts)
       crestmt should not be empty
       crestmt.size should be > 1000
     }
-    val rtarget = parser.parse("./src/test/resources/CTTargetClean.sql")
+    val rtarget = parser.parse("./src/test/resources/CTTarget.sql")
     rtarget should not be empty
     Statement.findTable(rtarget, "BSFSUBMITROSTERTAB") shouldBe defined
     Given("two rsult parsers")

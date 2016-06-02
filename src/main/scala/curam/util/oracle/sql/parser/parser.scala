@@ -23,6 +23,10 @@ class SQLParser extends StandardTokenParsers {
         | '-' ~ '-' ~ chrExcept(EofCh, '\n').*)
     override def token: Parser[Token] =
       (identChar ~ rep(identChar | digit) ^^ { case first ~ rest ⇒ processIdent(first :: rest mkString "") }
+        | opt('-') ~ '.' ~ rep(digit) ^^ {
+          case Some(_) ~ _ ~ d ⇒ FloatLit("-0." + d.mkString(""))
+          case None ~ _ ~ d    ⇒ FloatLit("0." + d.mkString(""))
+        }
         | opt('-') ~ rep1(digit) ~ opt('.' ~> rep(digit)) ^^ {
           case Some(_) ~ i ~ None    ⇒ NumericLit("-" + (i mkString ""))
           case Some(_) ~ i ~ Some(d) ⇒ FloatLit("-" + i.mkString("") + "." + d.mkString(""))
