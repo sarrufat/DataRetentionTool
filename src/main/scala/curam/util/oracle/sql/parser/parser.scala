@@ -23,9 +23,51 @@ class SQLParser extends StandardTokenParsers {
         | '-' ~ '-' ~ chrExcept(EofCh, '\n').*)
     override def token: Parser[Token] =
       (identChar ~ rep(identChar | digit) ^^ { case first ~ rest ⇒ processIdent(first :: rest mkString "") }
-        | rep1(digit) ~ opt('.' ~> rep(digit)) ^^ {
-          case i ~ None    ⇒ NumericLit(i mkString "")
-          case i ~ Some(d) ⇒ FloatLit(i.mkString("") + "." + d.mkString(""))
+        | opt('-') ~ rep1(digit) ~ opt('.' ~> rep(digit)) ^^ {
+          case Some(_) ~ i ~ None    ⇒ NumericLit("-" + (i mkString ""))
+          case Some(_) ~ i ~ Some(d) ⇒ FloatLit("-" + i.mkString("") + "." + d.mkString(""))
+          case None ~ i ~ None       ⇒ NumericLit(i mkString "")
+          case None ~ i ~ Some(d)    ⇒ FloatLit(i.mkString("") + "." + d.mkString(""))
+        }
+        | '\'' ~ rep(chrExcept('\'', EofCh)) ~ '\'' ~ '\'' ~ rep(chrExcept('\'', EofCh)) ~ '\'' ~ '\'' ~ rep(chrExcept('\'', EofCh)) ~ '\'' ~ '\'' ~ rep(chrExcept('\'', EofCh)) ~ '\'' ~ '\'' ~ rep(chrExcept('\'', EofCh)) ~ '\'' ~ '\'' ~ rep(chrExcept('\'', EofCh)) ~ '\'' ^^ {
+          case '\'' ~ chars ~ '\'' ~ '\'' ~ chars2 ~ '\'' ~ '\'' ~ chars3 ~ '\'' ~ '\'' ~ chars4 ~ '\'' ~ '\'' ~ chars5 ~ '\'' ~ '\'' ~ chars6 ~ '\'' ⇒
+            val s1 = chars mkString ""
+            val s2 = chars2 mkString ""
+            val s3 = chars3 mkString ""
+            val s4 = chars4 mkString ""
+            val s5 = chars5 mkString ""
+            val s6 = chars6 mkString ""
+            StringLit(s1 + "''" + s2 + "''" + s3 + "''" + s4 + "''" + s5 + "''" + s6)
+        }
+        | '\'' ~ rep(chrExcept('\'', EofCh)) ~ '\'' ~ '\'' ~ rep(chrExcept('\'', EofCh)) ~ '\'' ~ '\'' ~ rep(chrExcept('\'', EofCh)) ~ '\'' ~ '\'' ~ rep(chrExcept('\'', EofCh)) ~ '\'' ~ '\'' ~ rep(chrExcept('\'', EofCh)) ~ '\'' ^^ {
+          case '\'' ~ chars ~ '\'' ~ '\'' ~ chars2 ~ '\'' ~ '\'' ~ chars3 ~ '\'' ~ '\'' ~ chars4 ~ '\'' ~ '\'' ~ chars5 ~ '\'' ⇒
+            val s1 = chars mkString ""
+            val s2 = chars2 mkString ""
+            val s3 = chars3 mkString ""
+            val s4 = chars4 mkString ""
+            val s5 = chars5 mkString ""
+            StringLit(s1 + "''" + s2 + "''" + s3 + "''" + s4 + "''" + s5)
+        }
+        | '\'' ~ rep(chrExcept('\'', EofCh)) ~ '\'' ~ '\'' ~ rep(chrExcept('\'', EofCh)) ~ '\'' ~ '\'' ~ rep(chrExcept('\'', EofCh)) ~ '\'' ~ '\'' ~ rep(chrExcept('\'', EofCh)) ~ '\'' ^^ {
+          case '\'' ~ chars ~ '\'' ~ '\'' ~ chars2 ~ '\'' ~ '\'' ~ chars3 ~ '\'' ~ '\'' ~ chars4 ~ '\'' ⇒
+            val s1 = chars mkString ""
+            val s2 = chars2 mkString ""
+            val s3 = chars3 mkString ""
+            val s4 = chars4 mkString ""
+            StringLit(s1 + "''" + s2 + "''" + s3 + "''" + s4)
+        }
+        | '\'' ~ rep(chrExcept('\'', EofCh)) ~ '\'' ~ '\'' ~ rep(chrExcept('\'', EofCh)) ~ '\'' ~ '\'' ~ rep(chrExcept('\'', EofCh)) ~ '\'' ^^ {
+          case '\'' ~ chars ~ '\'' ~ '\'' ~ chars2 ~ '\'' ~ '\'' ~ chars3 ~ '\'' ⇒
+            val s1 = chars mkString ""
+            val s2 = chars2 mkString ""
+            val s3 = chars3 mkString ""
+            StringLit(s1 + "''" + s2 + "''" + s3)
+        }
+        | '\'' ~ rep(chrExcept('\'', EofCh)) ~ '\'' ~ '\'' ~ rep(chrExcept('\'', EofCh)) ~ '\'' ^^ {
+          case '\'' ~ chars ~ '\'' ~ '\'' ~ chars2 ~ '\'' ⇒
+            val s1 = chars mkString ""
+            val s2 = chars2 mkString ""
+            StringLit(s1 + "''" + s2)
         }
         | '\'' ~ rep(chrExcept('\'', EofCh)) ~ '\'' ^^ { case '\'' ~ chars ~ '\'' ⇒ StringLit(chars mkString "") }
         | '\"' ~ rep(chrExcept('\"', '\n', EofCh)) ~ '\"' ^^ { case '\"' ~ chars ~ '\"' ⇒ StringLit(chars mkString "") }
@@ -39,8 +81,8 @@ class SQLParser extends StandardTokenParsers {
   override val lexical = new ThisLexical
 
   lexical.reserved += ("CREATE", "TABLE", "CHAR", "CHARACTER", "NUMBER", "NUMERIC", "CONSTRAINT", "UNIQUE", "null", "not", "VARCHAR", "VARCHAR2", "DATE", "BLOB", "CLOB",
-    "ALTER", "ADD", "PRIMARY", "KEY", "FOREIGN", "REFERENCES", "INDEX", "ASC", "DESC", "ON", "INTEGER", "SMALLINT", "INSERT", "INTO", "VALUES", "values", "CURRENT_TIMESTAMP")
-  lexical.delimiters += ("*", "+", "-", "<", "=", "<>", "!=", "<=", ">=", ">", "/", "(", ")", ",", ".", ";")
+    "ALTER", "ADD", "PRIMARY", "KEY", "FOREIGN", "REFERENCES", "INDEX", "ASC", "DESC", "ON", "INTEGER", "SMALLINT", "INSERT", "INTO", "VALUES", "values", "CURRENT_TIMESTAMP", "chr")
+  lexical.delimiters += ("*", "+", "-", "<", "=", "<>", "!=", "<=", ">=", ">", "/", "(", ")", ",", ".", ";", "||")
 
   //  def integer: Parser[Any] = { regex("""\d+""".r) ^^ (_.toInt) }
   def floatLit: Parser[String] =
@@ -128,18 +170,28 @@ class SQLParser extends StandardTokenParsers {
   def currendTimeStamp: Parser[String] = "CURRENT_TIMESTAMP" ~ opt("(" ~> stringLit <~ ")") ^^ (x ⇒ "SYSDATE")
   def dateTimeFunc: Parser[String] = currendTimeStamp
   // Text literal
-  def tripleSTLit: Parser[String] = stringLit ~ stringLit ~ stringLit ^^ (x ⇒ x._1._1 + x._1._2 + x._2)
-  def doubleSTLit: Parser[String] = stringLit ~ stringLit ^^ (x ⇒ x._1 + x._2)
-  def numlitsig = opt("-") ~ numericLit ^^ {
-    case Some(s) ~ num ⇒ "-" + numericLit
-    case None ~ num    ⇒ num
+  //  def tripleSTLit: Parser[String] = stringLit ~ stringLit ~ stringLit ^^ (x ⇒ x._1._1 + x._1._2 + x._2)
+  //  def doubleSTLit: Parser[String] = stringLit ~ stringLit ^^ (x ⇒ x._1 + x._2)
+  //  def numlitsig = opt("-") ~ numericLit ^^ {
+  //    case Some(s) ~ num ⇒ "-" + numericLit
+  //    case None ~ num    ⇒ num
+  //  }
+  def stringWQ = stringLit ^^ { str ⇒ "'" + str + "'" }
+
+  def charFunc: Parser[String] = "chr" ~ "(" ~ numericLit ~ ")" ^^ {
+    case "chr" ~ "(" ~ num ~ ")" ⇒ s"chr($num)"
   }
-  def stringWQ = (tripleSTLit | doubleSTLit | stringLit) ^^ { str ⇒ "'" + str + "'" }
-  def simpleExpr: Parser[String] = (stringWQ | numlitsig | "null" | dateTimeFunc) ^^ (x ⇒ x)
+
+  def simpleExpr: Parser[String] = (stringWQ | numericLit | floatLit | "null" | dateTimeFunc | charFunc) ^^ (x ⇒ x)
+  def coumpoundExpr: Parser[String] = (simpleExpr ~ "||" ~ coumpoundExpr ^^ {
+    case expr ~ "||" ~ expr2 ⇒ expr + " || " + expr2
+  }
+    | simpleExpr ^^ (se ⇒ se))
+
   def insertIntoClause2 = "(" ~> repsep(ident, ",") <~ ")"
 
   def insertIntoClause1 = "INSERT" ~> "INTO" ~> ident ~ insertIntoClause2 ^^ { x ⇒ InsertIntoStmt(x._1, x._2.map { x ⇒ x.toUpperCase }) }
-  def insertIntoClause: Parser[InsertIntoStmt] = insertIntoClause1 ~ (("VALUES" | "values") ~ "(") ~ repsep(simpleExpr, ",") ~ ")" ^^ { x ⇒ InsertIntoStmt(x._1._1._1.table.toUpperCase, x._1._1._1.properties, x._1._2) }
+  def insertIntoClause: Parser[InsertIntoStmt] = insertIntoClause1 ~ (("VALUES" | "values") ~ "(") ~ repsep(coumpoundExpr, ",") ~ ")" ^^ { x ⇒ InsertIntoStmt(x._1._1._1.table.toUpperCase, x._1._1._1.properties, x._1._2) }
 
   def statement: Parser[Statement] = createTable | alterTable | createIndex | insertIntoClause
   def statements: Parser[Seq[Statement]] = rep(statement <~ ";") ^^ (sts ⇒ sts)
