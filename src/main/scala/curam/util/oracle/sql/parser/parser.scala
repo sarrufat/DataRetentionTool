@@ -168,7 +168,8 @@ class SQLParser extends StandardTokenParsers {
   // def number:  Parser[DummyStatement] = rep(chr
   // DATE TIME FUNCTIONS
   def currendTimeStamp: Parser[String] = "CURRENT_TIMESTAMP" ~ opt("(" ~> stringLit <~ ")") ^^ (x ⇒ "SYSDATE")
-  def dateTimeFunc: Parser[String] = currendTimeStamp
+  def sysdateFunc: Parser[String] = "SYSDATE" ^^ (x ⇒ x)
+  def dateTimeFunc: Parser[String] = currendTimeStamp | sysdateFunc
   // Text literal
   //  def tripleSTLit: Parser[String] = stringLit ~ stringLit ~ stringLit ^^ (x ⇒ x._1._1 + x._1._2 + x._2)
   //  def doubleSTLit: Parser[String] = stringLit ~ stringLit ^^ (x ⇒ x._1 + x._2)
