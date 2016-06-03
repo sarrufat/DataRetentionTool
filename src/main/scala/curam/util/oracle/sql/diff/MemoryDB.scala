@@ -9,6 +9,12 @@ import curam.util.oracle.sql.parser.InsertIntoStmt
 import curam.util.oracle.sql.parser.InsertIntoStmt
 import curam.util.oracle.sql.parser.Comparator
 import curam.util.oracle.sql.parser.PrimaryKey
+import curam.util.oracle.sql.parser.AlterTableStmt
+import curam.util.oracle.sql.parser.PrimaryKey
+import curam.util.oracle.sql.parser.AlterTableStmt
+import curam.util.oracle.sql.parser.PrimaryKeyDef
+import curam.util.oracle.sql.parser.Statement
+import java.io.BufferedWriter
 
 class MemoryDB(val pks: Seq[PrimaryKeyDef], val statements: Seq[InsertIntoStmt]) {
   private class TableIndex(val pk: PrimaryKeyDef, val statements: Seq[InsertIntoStmt]) {
@@ -36,14 +42,30 @@ class MemoryDB(val pks: Seq[PrimaryKeyDef], val statements: Seq[InsertIntoStmt])
 
   def find(insert: InsertIntoStmt): Option[InsertIntoStmt] = indexMap.get(insert.table).flatMap { tabidx ⇒ tabidx.find(insert) }
 
-  def diff(targetStmts: Seq[InsertIntoStmt]): Seq[Comparator.WriteDelta] = for {
+  def diff(targetStmts: Seq[InsertIntoStmt], excl: Option[MemoryDB.ExcludeOption] = None): Seq[Comparator.WriteDelta] = for {
     target ← targetStmts
+    if (excl == None || !excl.get.tabs.contains(target.table))
     found = find(target)
-    if (found == None || !target.allValuesAreEqual(found.get))
+    if (found == None || (excl == None && !target.allValuesAreEqual(found.get)) || !target.allValuesAreEqual(found.get, excl.get.fields))
   } yield {
     found match {
       case None    ⇒ Comparator.WriteInsert(target)
       case Some(x) ⇒ Comparator.WrtieUpdate(target, pkMap.get(x.table));
     }
+  }
+  def diffAndWrite(targetStmts: Seq[InsertIntoStmt], excl: Option[MemoryDB.ExcludeOption], bwr: BufferedWriter): Seq[Comparator.WriteDelta] = {
+    val d = diff(targetStmts, excl)
+    d.foreach { wr ⇒ bwr.write(wr.emit + "\n") }
+    bwr.close
+    d
+  }
+}
+
+object MemoryDB {
+  case class ExcludeOption(val tabs: Seq[String], val fields: Seq[String])
+
+  def apply(statements: Seq[Statement]) = {
+    val pks = statements.collect { case AlterTableStmt(tab, pk: PrimaryKey) ⇒ PrimaryKeyDef(tab, pk.columns) }
+    new MemoryDB(pks, statements)
   }
 }

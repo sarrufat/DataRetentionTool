@@ -8,3 +8,4 @@ project/target/
 target/
 .worksheet/
 /tmp.sql
+/testMemory.sql

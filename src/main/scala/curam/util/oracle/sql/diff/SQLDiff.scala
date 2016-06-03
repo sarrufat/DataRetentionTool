@@ -34,6 +34,10 @@ object SQLDiff extends App {
   writer.write(emitALtersTabs(alterDiff) mkString)
   val ctidxDiff = Comparator.findCreateIndexDiff(sourceStmts, targetStmts)
   writer.write(emitCreIdx(ctidxDiff) mkString)
+  val mdb = MemoryDB(sourceStmts.get)
+  val exludeTabs = Seq("APPRESOURCE", "KEYSERVER", "PRODUCTPROVIDER")
+  val exludedDiffFields = Seq("LASTWRITTEN")
+  val diff = mdb.diffAndWrite(targetStmts, Option(MemoryDB.ExcludeOption(exludeTabs, exludedDiffFields)), writer)
   writer.close
 
 }

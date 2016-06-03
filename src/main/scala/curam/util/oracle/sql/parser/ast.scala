@@ -1,5 +1,7 @@
 package curam.util.oracle.sql.parser
 
+import com.sun.rmi.rmid.ExecOptionPermission
+
 trait Node extends PrettyPrinters {
 
   def emitsql: String
@@ -132,9 +134,10 @@ case class InsertIntoStmt(table: String, properties: Seq[String], values: Seq[St
   private lazy val propMap = properties.zip(values) toMap
   def getValue(prop: String) = propMap.getOrElse(prop, "")
 
-  def allValuesAreEqual(other: InsertIntoStmt) = {
+  def allValuesAreEqual(other: InsertIntoStmt, excFields: Seq[String] = Seq()) = {
     val otherSeq = other.propMap.toSeq
-    propMap.toSeq.forall(prop ⇒ otherSeq.exists(p ⇒ p._1 == prop._1 && p._2 == prop._2))
+    val fprops = if (excFields.isEmpty) propMap.toSeq else propMap.toSeq.filterNot(prop ⇒ excFields.contains(prop._1))
+    fprops.forall(prop ⇒ otherSeq.exists(p ⇒ p._1 == prop._1 && p._2 == prop._2))
   }
 }
 
