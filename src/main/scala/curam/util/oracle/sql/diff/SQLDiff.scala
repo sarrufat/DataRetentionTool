@@ -11,7 +11,7 @@ import curam.util.oracle.sql.parser.CreateIndexStmt
 
 /**
  * SQLDiff, compare create and alters DDL statemens and generates diff DDL
- * args: source_file, target_file, output_file
+ * args: source_file, target_file, output_folder
  */
 object SQLDiff extends App {
   def emitNew(stmts: Seq[CreateStmt]) = for (st ← stmts) yield {
@@ -21,8 +21,10 @@ object SQLDiff extends App {
   def emitALtersTabs(alters: Seq[AlterTableStmt]): Seq[String] = alters.map { x ⇒ x.emit + "\n\n" }
   def emitCreIdx(ctxStmts: Seq[CreateIndexStmt]): Seq[String] = ctxStmts.map { ctx ⇒ ctx.emit + "\n\n" }
   assert(args.length == 3)
-
-  val writer = new BufferedWriter(new FileWriter(args(2)))
+  val outputFolder = new File(args(2))
+  assert(outputFolder.isDirectory())
+  val ddlOutName = outputFolder.getPath + "/DeltaDDL.sql"
+  val writer = new BufferedWriter(new FileWriter(ddlOutName))
   val parser = new SQLParser
   val sourceStmts = parser.parse(args(0))
   val targetStmts = parser.parse(args(1))
@@ -34,10 +36,12 @@ object SQLDiff extends App {
   writer.write(emitALtersTabs(alterDiff) mkString)
   val ctidxDiff = Comparator.findCreateIndexDiff(sourceStmts, targetStmts)
   writer.write(emitCreIdx(ctidxDiff) mkString)
+  writer.close
   val mdb = MemoryDB(sourceStmts.get)
   val exludeTabs = Seq("APPRESOURCE", "KEYSERVER", "PRODUCTPROVIDER")
   val exludedDiffFields = Seq("LASTWRITTEN")
-  val diff = mdb.diffAndWrite(targetStmts, Option(MemoryDB.ExcludeOption(exludeTabs, exludedDiffFields)), writer)
-  writer.close
-
+  val deltaOutName = outputFolder.getPath + "/deltaData.sql"
+  val deltaWriter = new BufferedWriter(new FileWriter(deltaOutName))
+  val diff = mdb.diffAndWrite(targetStmts, Option(MemoryDB.ExcludeOption(exludeTabs, exludedDiffFields)), deltaWriter)
+  deltaWriter.close
 }
