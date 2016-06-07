@@ -38,7 +38,8 @@ object SQLDiff extends App {
   writer.write(emitCreIdx(ctidxDiff) mkString)
   writer.close
   val mdb = MemoryDB(sourceStmts.get)
-  val exludeTabs = Seq("APPRESOURCE", "KEYSERVER", "PRODUCTPROVIDER")
+  //  val exludeTabs = Seq("APPRESOURCE", "KEYSERVER", "PRODUCTPROVIDER")
+  val exludeTabs = Seq("KEYSERVER", "PRODUCTPROVIDER")
   val exludedDiffFields = Seq("LASTWRITTEN")
   val deltaOutName = outputFolder.getPath + "/deltaData.sql"
   val deltaWriter = new BufferedWriter(new FileWriter(deltaOutName))
