@@ -26,7 +26,7 @@ object SQLDiff extends App {
   def emitALters(alters: Seq[Comparator.AlterTable]): Seq[String] = alters.map { x ⇒ x.emit + "\n" }
   def emitALtersTabs(alters: Seq[AlterTableStmt]): Seq[String] = alters.map { x ⇒ x.emit + "\n\n" }
   def emitCreIdx(ctxStmts: Seq[CreateIndexStmt]): Seq[String] = ctxStmts.map { ctx ⇒ ctx.emit + "\n\n" }
-  assert(args.length == 2)
+
   val outputFolder = new File(outFolder)
   assert(outputFolder.isDirectory())
   val ddlOutName = outputFolder.getPath + "/DeltaDDL.sql"
