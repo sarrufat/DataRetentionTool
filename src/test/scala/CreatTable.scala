@@ -1,17 +1,18 @@
 
-import org.scalatest.FlatSpec
-import org.scalatest.Matchers._
-import org.scalatest.matchers._
-import org.scalatest.Inspectors._
-import curam.util.oracle.sql.parser.SQLParser
-import curam.util.oracle.sql.parser.CreateStmt
-import curam.util.oracle.sql.parser.Statement
-import scala.util.parsing.input.StreamReader
-import scala.util.parsing.input.PagedSeqReader
-import curam.util.oracle.sql.parser.Comparator
-import org.scalatest.GivenWhenThen
-import curam.util.oracle.sql.diff.SQLDiff
 import java.io.File
+
+import org.scalatest.FlatSpec
+import org.scalatest.GivenWhenThen
+import org.scalatest.Matchers._
+
+import curam.util.oracle.sql.diff.SQLDiff
+import curam.util.oracle.sql.parser.Comparator
+import curam.util.oracle.sql.parser.CreateStmt
+import curam.util.oracle.sql.parser.SQLParser
+import curam.util.oracle.sql.parser.Statement
+import curam.util.oracle.sql.parser.toAlterStmt
+import curam.util.oracle.sql.parser.toCreIDXStmt
+import curam.util.oracle.sql.parser.toCreateStmt
 
 class CreatTable extends FlatSpec with GivenWhenThen {
   def getListOfFiles(dir: String): List[File] = {

@@ -8,26 +8,32 @@ import java.io.File
 import java.io.FileWriter
 import curam.util.oracle.sql.parser.AlterTableStmt
 import curam.util.oracle.sql.parser.CreateIndexStmt
+import com.typesafe.config.ConfigFactory
 
 /**
  * SQLDiff, compare create and alters DDL statemens and generates diff DDL
  * args: source_file, target_file, output_folder
  */
 object SQLDiff extends App {
+
+  val conf = ConfigFactory.load
+  val outFolder = conf.getString("outfolder")
+  val sqlSource = conf.getString("sql.source")
+  val sqlTarget = conf.getString("sql.target")
   def emitNew(stmts: Seq[CreateStmt]) = for (st ← stmts) yield {
     s"CREATE TABLE ${st.table} (\n" + (st.props.props.map { x ⇒ x.emit }).mkString(",\n") + ");\n\n"
   }
   def emitALters(alters: Seq[Comparator.AlterTable]): Seq[String] = alters.map { x ⇒ x.emit + "\n" }
   def emitALtersTabs(alters: Seq[AlterTableStmt]): Seq[String] = alters.map { x ⇒ x.emit + "\n\n" }
   def emitCreIdx(ctxStmts: Seq[CreateIndexStmt]): Seq[String] = ctxStmts.map { ctx ⇒ ctx.emit + "\n\n" }
-  assert(args.length == 3)
-  val outputFolder = new File(args(2))
+  assert(args.length == 2)
+  val outputFolder = new File(outFolder)
   assert(outputFolder.isDirectory())
   val ddlOutName = outputFolder.getPath + "/DeltaDDL.sql"
   val writer = new BufferedWriter(new FileWriter(ddlOutName))
   val parser = new SQLParser
-  val sourceStmts = parser.parse(args(0))
-  val targetStmts = parser.parse(args(1))
+  val sourceStmts = parser.parse(sqlSource)
+  val targetStmts = parser.parse(sqlTarget)
   val newTabs = Comparator.findNewTables(sourceStmts, targetStmts)
   writer.write(emitNew(newTabs) mkString)
   val alterTabs = Comparator.findAlterTables(sourceStmts, targetStmts)
