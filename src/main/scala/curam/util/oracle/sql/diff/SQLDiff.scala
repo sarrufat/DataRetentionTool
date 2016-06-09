@@ -69,6 +69,6 @@ object SQLDiff extends App {
   val sourceLobs = LobReadFactory(sLobPath)
   val targetLobs = LobReadFactory(tLobPath)
   val outLobs = LobComparator.compare(sourceLobs, targetLobs, mdb.pks)
-  val outLobXml = <root><lob>{ outLobs }</lob></root>
+  val outLobXml = <root><lob>{ outLobs.map { _.node } }</lob></root>
   XML.save(s"${outFolder}/LobInsert.xml", outLobXml, "UTF-8", true, null)
 }
