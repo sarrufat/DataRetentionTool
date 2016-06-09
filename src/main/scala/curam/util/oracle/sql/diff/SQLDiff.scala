@@ -42,20 +42,30 @@ object SQLDiff extends App {
   val parser = new SQLParser
   // Parsers source and target
   val sourceStmts = parser.parse(sqlSource)
+  println(s"${sourceStmts.get.size} source statetments parsed")
   val targetStmts = parser.parse(sqlTarget)
+  println(s"${sourceStmts.get.size} target statetments parsed")
   // Diff create tables
   val newTabs = Comparator.findNewTables(sourceStmts, targetStmts)
   writer.write(emitNew(newTabs) mkString)
+  println(s"${newTabs.size} new tables")
+
   // Diff modified tables
   val alterTabs = Comparator.findAlterTables(sourceStmts, targetStmts)
   writer.write(emitALters(alterTabs) mkString)
+  println(s"${alterTabs.size} modified tables")
+
   // Diff alters constraints
   val alterDiff = Comparator.findAlterTabsDiff(sourceStmts, targetStmts)
   writer.write(emitALtersTabs(alterDiff) mkString)
+  println(s"${alterDiff.size} alters constraints")
+
   // Diff INDEXs
   val ctidxDiff = Comparator.findCreateIndexDiff(sourceStmts, targetStmts)
   writer.write(emitCreIdx(ctidxDiff) mkString)
   writer.close
+  println(s"${ctidxDiff.size} new indexes")
+
   // CONTENT DATA
   val mdb = MemoryDB(sourceStmts.get)
   //  val exludeTabs = Seq("APPRESOURCE", "KEYSERVER", "PRODUCTPROVIDER")
@@ -65,10 +75,11 @@ object SQLDiff extends App {
   val deltaWriter = new BufferedWriter(new FileWriter(deltaOutName))
   val diff = mdb.diffAndWrite(targetStmts, Option(MemoryDB.ExcludeOption(exludeTabs, exludedDiffFields)), deltaWriter)
   deltaWriter.close
+  println(s"${diff.size} delta inserts")
   // LOB DATA
   val sourceLobs = LobReadFactory(sLobPath)
   val targetLobs = LobReadFactory(tLobPath)
-  val outLobs = LobComparator.compare(sourceLobs, targetLobs, mdb.pks)
-  val outLobXml = <root><lob>{ outLobs.map { _.node } }</lob></root>
+  val outLobXml = LobComparator.compare(sourceLobs, targetLobs, mdb.pks)
   XML.save(s"${outFolder}/LobInsert.xml", outLobXml, "UTF-8", true, null)
+
 }

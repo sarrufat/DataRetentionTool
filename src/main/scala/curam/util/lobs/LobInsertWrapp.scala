@@ -68,12 +68,18 @@ object LobComparator {
           case None     ⇒ Seq()
         }) mkString
       }
-    for {
+    val nodes = for {
       t ← target
       pk = pkMap(t.table)
       found = source.find { lob ⇒ lob.table == t.table && getKeyValues(lob) == getKeyValues(t) }
       // If new or content changed
       if (found == None || found.get.digest() != t.digest())
     } yield t
+    println(s"${nodes.size} LOBS Generated")
+    (<root>
+       <lob>
+         { nodes.map { _.node } }
+       </lob>
+     </root>)
   }
 }
