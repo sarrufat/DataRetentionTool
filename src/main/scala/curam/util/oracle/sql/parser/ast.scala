@@ -2,7 +2,7 @@ package curam.util.oracle.sql.parser
 
 import com.sun.rmi.rmid.ExecOptionPermission
 
-trait Node extends PrettyPrinters {
+trait Node {
 
   def emitsql: String
 }
@@ -245,8 +245,4 @@ object Comparator {
     if (current.find { ctx ⇒ ctx.id == ctx.id && ctx.table == tgt.table } == None)
   } yield tgt
 
-  def diffInsertInto(current: Seq[InsertIntoStmt], target: Seq[InsertIntoStmt], pks: Seq[PrimaryKeyDef]): Seq[WriteDelta] = {
-
-    ???
-  }
 }

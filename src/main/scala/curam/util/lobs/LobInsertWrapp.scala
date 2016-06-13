@@ -14,7 +14,7 @@ case class LobInsertWrapp(table: String, parameters: Map[String, String], node: 
       case path ⇒ Digest.digestFile(path)
     }
   }
-  def compare(other: LobInsertWrapp) = digest() == other.digest()
+  //  def compare(other: LobInsertWrapp) = digest() == other.digest()
 }
 
 object LobInsertWrappFact {
