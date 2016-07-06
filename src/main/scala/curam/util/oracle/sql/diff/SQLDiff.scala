@@ -45,9 +45,11 @@ object SQLDiff extends App {
     val writer = new BufferedWriter(new FileWriter(ddlOutName))
     val parser = new SQLParser
     // Parsers source and target
-    val sourceStmts = parser.parse(sqlSource)
+    import common._
+    val (sourceStmts, targetStmts) = parallel(parser.parse(sqlSource), parser.parse(sqlTarget))
+    //    val sourceStmts = parser.parse(sqlSource)
     println(s"${sourceStmts.get.size} source statetments parsed")
-    val targetStmts = parser.parse(sqlTarget)
+    //    val targetStmts = parser.parse(sqlTarget)
     println(s"${targetStmts.get.size} target statetments parsed")
     // Diff create tables
     val newTabs = Comparator.findNewTables(sourceStmts, targetStmts)
