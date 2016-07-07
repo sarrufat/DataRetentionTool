@@ -20,6 +20,12 @@ import org.scalameter._
  * args: source_file, target_file, output_folder
  */
 object SQLDiff extends App {
+  def emitNew(stmts: Seq[CreateStmt]) = for (st ← stmts) yield {
+    s"CREATE TABLE ${st.table} (\n" + (st.props.props.map { x ⇒ x.emit }).mkString(",\n") + ");\n\n"
+  }
+  def emitALters(alters: Seq[Comparator.AlterTable]): Seq[String] = alters.map { x ⇒ x.emit + "\n" }
+  def emitALtersTabs(alters: Seq[AlterTableStmt]): Seq[String] = alters.map { x ⇒ x.emit + "\n\n" }
+  def emitCreIdx(ctxStmts: Seq[CreateIndexStmt]): Seq[String] = ctxStmts.map { ctx ⇒ ctx.emit + "\n\n" }
   val totalTime = measure {
 
     val lobPath = "/datamanager/LobInsert.xml"
@@ -31,13 +37,6 @@ object SQLDiff extends App {
     val targetBuild = conf.getString("target.build")
     val sLobPath = sourceBuild + lobPath
     val tLobPath = targetBuild + lobPath
-
-      def emitNew(stmts: Seq[CreateStmt]) = for (st ← stmts) yield {
-        s"CREATE TABLE ${st.table} (\n" + (st.props.props.map { x ⇒ x.emit }).mkString(",\n") + ");\n\n"
-      }
-      def emitALters(alters: Seq[Comparator.AlterTable]): Seq[String] = alters.map { x ⇒ x.emit + "\n" }
-      def emitALtersTabs(alters: Seq[AlterTableStmt]): Seq[String] = alters.map { x ⇒ x.emit + "\n\n" }
-      def emitCreIdx(ctxStmts: Seq[CreateIndexStmt]): Seq[String] = ctxStmts.map { ctx ⇒ ctx.emit + "\n\n" }
 
     val outputFolder = new File(outFolder)
     assert(outputFolder.isDirectory())
