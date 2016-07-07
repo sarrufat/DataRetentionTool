@@ -122,7 +122,7 @@ case class UniqueKeyClause(constraint: String, columns: Seq[String]) extends Alt
 }
 case class ReferencesClause(obj: String, columns: Seq[String])
 case class ForeignKey(constraint: String, columns: Seq[String], reference: ReferencesClause) extends AlterConstraint {
-  def emit: String = s"${emitConstraint} FOREIGN KEY(" + columns.mkString(",") + ")"
+  def emit: String = s"${emitConstraint} FOREIGN KEY(" + columns.mkString(",") + s") REFERENCES ${reference.obj} (" + reference.columns.mkString(",") + ")"
 }
 
 case class AlterTableStmt(table: String, const: AlterConstraint) extends Statement {
