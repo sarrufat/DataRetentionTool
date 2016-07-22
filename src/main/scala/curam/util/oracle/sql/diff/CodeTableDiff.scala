@@ -41,7 +41,7 @@ object CodeTableDiff extends App {
   val targetFiles = checkFolder(args(1))
   val sourceStmts: Seq[InsertIntoStmt] = parserFiles(sourceFiles)
   val targetStmts: Seq[InsertIntoStmt] = parserFiles(targetFiles)
-  val memoryDB = new MemoryDB(pks, sourceStmts)
+  val memoryDB = MemoryDB(sourceStmts, targetStmts) // new MemoryDB(pks, sourceStmts, targetStmts)
   val diff = memoryDB.diff(targetStmts)
   val writer = new BufferedWriter(new FileWriter(args(2)))
   println(s"Found ${diff.size} differences")

@@ -18,7 +18,7 @@ class MemoryDBTest extends FlatSpec {
 
     val rtarget = parser.parse("./src/test/resources/CTTarget.sql")
     rtarget should not be empty
-    val mem = MemoryDB(rcurrent.get)
+    val mem = MemoryDB(rcurrent.get, rtarget.get)
     val writer = new BufferedWriter(new FileWriter("testMemory.sql"))
     val exludeTabs = Seq("KEYSERVER", "PRODUCTPROVIDER")
     val exludedDiffFields = Seq("LASTWRITTEN")

@@ -124,6 +124,7 @@ case class ReferencesClause(obj: String, columns: Seq[String])
 case class ForeignKey(constraint: String, columns: Seq[String], reference: ReferencesClause) extends AlterConstraint {
   def emit: String = s"${emitConstraint} FOREIGN KEY(" + columns.mkString(",") + s") REFERENCES ${reference.obj} (" + reference.columns.mkString(",") + ")"
 }
+case class ForeignKeyDef(tab: String, fk: ForeignKey)
 
 case class AlterTableStmt(table: String, const: AlterConstraint) extends Statement {
   def emit: String = s"ALTER TABLE $table ADD " + const.emit + ";"
@@ -171,6 +172,12 @@ object Comparator {
   trait Alter
   trait WriteDelta {
     def emit: String
+    def getInsert = {
+      this match {
+        case WriteInsert(insert: InsertIntoStmt)    ⇒ insert
+        case WrtieUpdate(insert: InsertIntoStmt, _) ⇒ insert
+      }
+    }
   }
   case class WriteInsert(insert: InsertIntoStmt) extends WriteDelta {
     private lazy val props = insert.properties.mkString(",")

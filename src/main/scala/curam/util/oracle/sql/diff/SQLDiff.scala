@@ -72,7 +72,7 @@ object SQLDiff extends App {
     println(s"${ctidxDiff.size} new indexes")
 
     // CONTENT DATA
-    val mdb = MemoryDB(sourceStmts.get)
+    val mdb = MemoryDB(sourceStmts.get, targetStmts.get)
     //  val exludeTabs = Seq("APPRESOURCE", "KEYSERVER", "PRODUCTPROVIDER")
     val exludeTabs = Seq("KEYSERVER", "PRODUCTPROVIDER")
     val exludedDiffFields = Seq("LASTWRITTEN")
