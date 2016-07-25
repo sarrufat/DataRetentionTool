@@ -94,6 +94,12 @@ class MemoryDB(val pks: Seq[PrimaryKeyDef], val statements: Seq[InsertIntoStmt],
   def diffAndWrite(targetStmts: Seq[InsertIntoStmt], excl: Option[MemoryDB.ExcludeOption], bwr: BufferedWriter): Seq[Comparator.WriteDelta] = {
     val d = diff(targetStmts, excl)
     d.foreach { wr ⇒ bwr.write(wr.emit + "\n") }
+    val appendStmts = """
+insert into securityfidsid(sidname,fidname)  select f.fidname,f.fidname from functionidentifier f WHERE NOT EXISTS(SELECT * FROM securityfidsid WHERE sidname = f.fidname);
+insert into securityidentifier(sidname,sidtype, versionNo) select sidname, 'FUNCTION', 0 from securityfidsid s1 WHERE NOT EXISTS( select * FROM securityidentifier s2 WHERE s2.sidname = s1.sidname);
+insert into securitygroupsid(groupname, sidname) select 'SUPERGROUP', sidname from securityidentifier si WHERE NOT EXISTS(select * FROM securitygroupsid si2 WHERE si2.sidname = si.sidname);
+      """
+    bwr.write(appendStmts)
     bwr.close
     d
   }
