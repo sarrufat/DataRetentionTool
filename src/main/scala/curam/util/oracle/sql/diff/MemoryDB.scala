@@ -98,6 +98,16 @@ class MemoryDB(val pks: Seq[PrimaryKeyDef], val statements: Seq[InsertIntoStmt],
 insert into securityfidsid(sidname,fidname)  select f.fidname,f.fidname from functionidentifier f WHERE NOT EXISTS(SELECT * FROM securityfidsid WHERE sidname = f.fidname);
 insert into securityidentifier(sidname,sidtype, versionNo) select sidname, 'FUNCTION', 0 from securityfidsid s1 WHERE NOT EXISTS( select * FROM securityidentifier s2 WHERE s2.sidname = s1.sidname);
 insert into securitygroupsid(groupname, sidname) select 'SUPERGROUP', sidname from securityidentifier si WHERE NOT EXISTS(select * FROM securitygroupsid si2 WHERE si2.sidname = si.sidname);
+
+insert into BATCHPROCDESC(PROCESSDEFNAME, PROCESSLONGNAME,  DESCRIPTION, BATCHTYPE, VERSIONNO)
+                   select PROCESSDEFNAME, PROCESSDEFNAME,  RTRIM(PROCESSDEFNAME), '', 1
+                   from BATCHPROCDEF B1 WHERE NOT EXISTS (SELECT * FROM BATCHPROCDESC B2 WHERE B1.PROCESSDEFNAME = B2.PROCESSDEFNAME );
+
+insert into BATCHPARAMDESC(PARAMNAME, PROCESSDEFNAME, DESCRIPTION, VERSIONNO)
+                    select PARAMNAME, PROCESSDEFNAME, RTRIM(PARAMTYPE), 1
+                    from BATCHPARAMDEF B1 WHERE NOT EXISTS (SELECT * FROM BATCHPARAMDESC B2 WHERE  B2.PROCESSDEFNAME = B1.PROCESSDEFNAME);
+update BATCHPARAMDESC set DEFAULTVALUE = NULL;
+
       """
     bwr.write(appendStmts)
     bwr.close
