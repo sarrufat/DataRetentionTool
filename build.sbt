@@ -4,7 +4,7 @@ lazy val root = (project in file(".")).
   settings(
     name := "DataRetentionTool",
     version := "1.0",
-    scalaVersion := "2.11.7"
+    scalaVersion := "2.11.8"
   )
 
 
@@ -12,12 +12,18 @@ lazy val root = (project in file(".")).
 
 // libraryDependencies += "us.fatehi" % "schemacrawler" % "12.06.03"
 
-libraryDependencies += "us.fatehi" % "schemacrawler-oracle" % "12.06.03"
+// libraryDependencies += "us.fatehi" % "schemacrawler-oracle" % "12.06.03"
+
+libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.3"
+
+libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.2"
+
+ libraryDependencies +=  "com.storm-enroute" %% "scalameter-core" % "0.6"
 
 
 libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.2.6" % "test"
 
 libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.12.5" % "test"
 
-
+libraryDependencies += "com.typesafe" % "config" % "1.2.1"
 

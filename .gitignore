@@ -6,3 +6,6 @@ project/target/
 .classpath
 .settings/
 target/
+.worksheet/
+/tmp.sql
+/testMemory.sql
