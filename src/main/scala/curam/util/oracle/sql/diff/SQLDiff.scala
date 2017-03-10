@@ -82,8 +82,8 @@ object SQLDiff extends App {
     deltaWriter.close
     println(s"${diff.size} delta inserts")
     // LOB DATA
-    val sourceLobs = LobReadFactory(sLobPath)
-    val targetLobs = LobReadFactory(tLobPath)
+    val sourceLobs = LobReadFactory(sLobPath, "/var/lib/jenkins/workspace/SIREC-BuildDB-CurrentAndTarget/gitversions/source_build/")
+    val targetLobs = LobReadFactory(tLobPath, "/var/lib/jenkins/workspace/SIREC-BuildDB-CurrentAndTarget/gitversions/target_build/")
     val outLobXml = LobComparator.compare(sourceLobs, targetLobs, mdb.pks)
     XML.save(s"${outFolder}/LobInsert.xml", outLobXml, "UTF-8", true, null)
   }
