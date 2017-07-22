@@ -6,8 +6,15 @@ import java.io.FileInputStream
 import scala.xml.XML
 import curam.util.oracle.sql.parser.PrimaryKeyDef
 
-case class LobInsertWrapp(table: String, parameters: Map[String, String], node: NodeSeq) {
-  lazy val locator = (node \ "@locator").text
+case class LobInsertWrapp(table: String, parameters: Map[String, String], node: NodeSeq, replacePath: String) {
+  lazy val tlocator = (node \ "@locator").text
+  val locator = {
+    val cpath = "/var/lib/jenkins/workspace/BuildDummyDatabaseAndPushToGit/tmp/"
+    if (tlocator.startsWith(cpath)) {
+      replacePath + tlocator.substring(cpath.length())
+    } else
+      tlocator
+  }
   def digest(): String = {
     locator match {
       case ""   ⇒ ""
@@ -18,22 +25,22 @@ case class LobInsertWrapp(table: String, parameters: Map[String, String], node: 
 }
 
 object LobInsertWrappFact {
-  def wrapp(table: NodeSeq) = {
+  def wrapp(table: NodeSeq, replacePath: String) = {
     val tabName = (table \ "@tablename").text
     val paramNodes = (table \\ "parameter")
     val parameters = paramNodes.map { param ⇒ ((param \ "@name").text, (param \ "@value").text) }.toMap
-    LobInsertWrapp(tabName, parameters, table)
+    LobInsertWrapp(tabName, parameters, table, replacePath)
   }
-  def apply(table: NodeSeq): LobInsertWrapp = wrapp(table)
+  def apply(table: NodeSeq, replacePath: String): LobInsertWrapp = wrapp(table, replacePath)
 }
 
 object LobReadFactory {
-  def load(path: String): Seq[LobInsertWrapp] = {
+  def load(path: String, replacePath: String): Seq[LobInsertWrapp] = {
     val rootDoc = XML.load(path)
     val tables = (rootDoc \\ "lob" \\ "table")
-    tables.map { t ⇒ LobInsertWrappFact(t) }
+    tables.map { t ⇒ LobInsertWrappFact(t, replacePath) }
   }
-  def apply(path: String): Seq[LobInsertWrapp] = load(path)
+  def apply(path: String, replacePath: String): Seq[LobInsertWrapp] = load(path, replacePath)
 }
 
 object Digest {
