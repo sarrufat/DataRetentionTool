@@ -80,9 +80,11 @@ class MemoryDB(val pks: Seq[PrimaryKeyDef], val statements: Seq[InsertIntoStmt],
   def diff(targetStmts: Seq[InsertIntoStmt], excl: Option[MemoryDB.ExcludeOption] = None): Seq[Comparator.WriteDelta] = {
     val result = for {
       target ← targetStmts
-      if (excl == None || !excl.get.tabs.contains(target.table))
+      options ← excl
+      if (excl == None || !options.tabs.contains(target.table))
       found = find(target)
       if (found == None || (excl == None && !target.allValuesAreEqual(found.get)) || !target.allValuesAreEqual(found.get, excl.get.fields))
+      if (!(found != None && options.insertOnlyTabs.contains(target.table)))
     } yield {
       found match {
         case None    ⇒ Comparator.WriteInsert(target)
@@ -161,7 +163,7 @@ UPDATE BATCHPARAMDESC SET DEFAULTVALUE = NULL;
 }
 
 object MemoryDB {
-  case class ExcludeOption(val tabs: Seq[String], val fields: Seq[String])
+  case class ExcludeOption(val tabs: Seq[String], val fields: Seq[String], val insertOnlyTabs: Seq[String])
 
   def apply(statements: Seq[Statement], targets: Seq[Statement]) = {
     val pks = statements.collect { case AlterTableStmt(tab, pk: PrimaryKey) ⇒ PrimaryKeyDef(tab, pk.columns) }

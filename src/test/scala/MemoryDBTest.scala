@@ -20,9 +20,10 @@ class MemoryDBTest extends FlatSpec {
     rtarget should not be empty
     val mem = MemoryDB(rcurrent.get, rtarget.get)
     val writer = new BufferedWriter(new FileWriter("testMemory.sql"))
-    val exludeTabs = Seq("KEYSERVER", "PRODUCTPROVIDER")
-    val exludedDiffFields = Seq("LASTWRITTEN")
-    val diff = mem.diffAndWrite(rtarget.get, Option(MemoryDB.ExcludeOption(exludeTabs, exludedDiffFields)), writer)
+    val exludeTabs = Seq("PRODUCTPROVIDER", "PRECEDENTCHANGESET")
+    val exludedDiffFields = Seq("LASTWRITTEN", "FRCEDREIDXTIMESTMP", "SUBSCRIPTIONDATETIME", "CREATEDDATETIME", "CREATEDON")
+    val insertOnlyTabs = Seq("KEYSERVER")
+    val diff = mem.diffAndWrite(rtarget.get, Option(MemoryDB.ExcludeOption(exludeTabs, exludedDiffFields, insertOnlyTabs)), writer)
     diff should not be empty
 
   }
