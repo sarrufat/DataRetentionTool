@@ -6,7 +6,6 @@ import curam.util.oracle.sql.parser.PrimaryKeyDef
 import curam.util.oracle.sql.parser.Comparator
 import curam.util.oracle.sql.parser.InsertIntoStmt
 import java.io.BufferedWriter
-import jdk.internal.jfr.events.FileWriteEvent
 import java.io.FileWriter
 
 /**

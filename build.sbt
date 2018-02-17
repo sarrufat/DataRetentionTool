@@ -18,12 +18,14 @@ libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % 
 
 libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.2"
 
- libraryDependencies +=  "com.storm-enroute" %% "scalameter-core" % "0.6"
-
 
 libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.2.6" % "test"
 
 libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.12.5" % "test"
 
 libraryDependencies += "com.typesafe" % "config" % "1.2.1"
+
+
+libraryDependencies += "com.storm-enroute" %% "scalameter-core" % "0.8.2"
+
 
