@@ -26,6 +26,6 @@ libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.12.5" % "test"
 libraryDependencies += "com.typesafe" % "config" % "1.2.1"
 
 
-libraryDependencies += "com.storm-enroute" %% "scalameter-core" % "0.8.2"
+// libraryDependencies += "com.storm-enroute" %% "scalameter-core" % "0.8.2"
 
 
