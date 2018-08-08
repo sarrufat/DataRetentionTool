@@ -7,6 +7,8 @@ lazy val root = (project in file(".")).
     scalaVersion := "2.11.8"
   )
 
+resolvers += "Sonatype OSS Snapshots" at
+  "https://oss.sonatype.org/content/repositories/releases"
 
 // libraryDependencies += "com.lihaoyi" %% "fastparse" % "0.3.5"
 
