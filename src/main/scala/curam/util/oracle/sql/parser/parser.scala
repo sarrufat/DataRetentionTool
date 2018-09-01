@@ -125,7 +125,7 @@ class SQLParser extends StandardTokenParsers {
 
   // Constraints
   def primaryKeyPart: Parser[PrimaryKey] = "PRIMARY" ~> "KEY" ~> "(" ~> repsep((ident | "KEY"), ",") <~ ")" ^^ (cols ⇒ PrimaryKey("", cols))
-  def referencesClause: Parser[ReferencesClause] = "REFERENCES" ~> ident ~ ("(" ~> repsep(ident, ",") <~ ")") ^^ (x ⇒ ReferencesClause(x._1, x._2))
+  def referencesClause: Parser[ReferencesClause] = "REFERENCES" ~> ident ~ ("(" ~> repsep((ident | "KEY"), ",") <~ ")") ^^ (x ⇒ ReferencesClause(x._1, x._2))
   def uniqueConstrPart: Parser[UniqueKeyClause] = "UNIQUE" ~> "(" ~> repsep((ident | "KEY"), ",") <~ ")" ^^ (cols ⇒ UniqueKeyClause("", cols))
   def foreignKeyPart: Parser[ForeignKey] = ("FOREIGN" ~> "KEY" ~> "(" ~> repsep(ident | "KEY", ",") <~ ")") ~ referencesClause ^^ (x ⇒ ForeignKey("", x._1, x._2))
 
