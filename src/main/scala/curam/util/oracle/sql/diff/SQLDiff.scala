@@ -74,7 +74,27 @@ object SQLDiff extends App {
     // CONTENT DATA
     val mdb = MemoryDB(sourceStmts.get, targetStmts.get)
     //  val exludeTabs = Seq("APPRESOURCE", "KEYSERVER", "PRODUCTPROVIDER")
-    val exludeTabs = Seq("KEYSERVER", "PRODUCTPROVIDER", "PRECEDENTCHANGESET")
+    val exludeTabs = Seq(
+        /*"KEYSERVER", */
+        "CREOLERULESETEDITACTION",
+        "EXTERNALUSER",
+        "POSITION",
+        "ORGANISATIONUNIT",
+        "USERS",
+        "PRODUCTPROVIDER", 
+        "POSITIONHOLDERLINK",
+        "GOAL",
+        "OUTCOME",
+        "SERVICESUPPLIER",
+        "INFORMATIONPROVIDER",
+        "PLANTEMPLATE",
+        "PLANITEM",
+        "EMPLOYER",
+        "PERSON",
+        "UTILITY",
+        "PROVIDERPARTY",
+        "SUBGOAL",
+        "PRECEDENTCHANGESET")
     val exludedDiffFields = Seq("LASTWRITTEN", "FRCEDREIDXTIMESTMP", "SUBSCRIPTIONDATETIME", "CREATEDDATETIME", "CREATEDON")
     val deltaOutName = outputFolder.getPath + "/deltaData.sql"
     val deltaWriter = new BufferedWriter(new FileWriter(deltaOutName))
@@ -82,10 +102,10 @@ object SQLDiff extends App {
     deltaWriter.close
     println(s"${diff.size} delta inserts")
     // LOB DATA
-    val sourceLobs = LobReadFactory(sLobPath, "/var/lib/jenkins/workspace/SIREC-BuildDB-CurrentAndTarget/source_build/")
-    val targetLobs = LobReadFactory(tLobPath, "/var/lib/jenkins/workspace/SIREC-BuildDB-CurrentAndTarget/target_build/")
-    val outLobXml = LobComparator.compare(sourceLobs, targetLobs, mdb.pks)
-    XML.save(s"${outFolder}/LobInsert.xml", outLobXml, "UTF-8", true, null)
+     // val sourceLobs = LobReadFactory(sLobPath, "/var/lib/jenkins/workspace/SIREC-BuildDB-CurrentAndTarget/source_build/")
+   // val targetLobs = LobReadFactory(tLobPath, "/var/lib/jenkins/workspace/SIREC-BuildDB-CurrentAndTarget/target_build/")
+   // val outLobXml = LobComparator.compare(sourceLobs, targetLobs, mdb.pks)
+   // XML.save(s"${outFolder}/LobInsert.xml", outLobXml, "UTF-8", true, null)
   }
   println(s"Total time $totalTime ms")
 }
