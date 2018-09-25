@@ -95,7 +95,7 @@ object SQLDiff extends App {
         "PROVIDERPARTY",
         "SUBGOAL",
         "PRECEDENTCHANGESET")
-    val exludedDiffFields = Seq("LASTWRITTEN", "FRCEDREIDXTIMESTMP", "SUBSCRIPTIONDATETIME", "CREATEDDATETIME", "CREATEDON")
+    val exludedDiffFields = Seq("LASTWRITTEN", "FRCEDREIDXTIMESTMP", "SUBSCRIPTIONDATETIME", "CREATEDDATETIME", "CREATEDON", "LASTUPDATED", "LASTWRITTEN")
     val deltaOutName = outputFolder.getPath + "/deltaData.sql"
     val deltaWriter = new BufferedWriter(new FileWriter(deltaOutName))
     val diff = mdb.diffAndWrite(targetStmts, Option(MemoryDB.ExcludeOption(exludeTabs, exludedDiffFields)), deltaWriter)
