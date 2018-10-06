@@ -23,6 +23,23 @@ object SQLDiff extends App {
   def emitNew(stmts: Seq[CreateStmt]) = for (st ← stmts) yield {
     s"CREATE TABLE ${st.table} (\n" + (st.props.props.map { x ⇒ x.emit }).mkString(",\n") + ");\n\n"
   }
+  def emitGrants(stmts: Seq[CreateStmt]) = {
+    val schema1 = " -- Grants\nALTER SESSION SET CURRENT_SCHEMA = RGC_ADM;\n"
+    val grantRW = for (st ← stmts) yield {
+      s"GRANT SELECT,INSERT,DELETE,UPDATE ON RGC_ADM.${st.table} TO RGC_ROLE_RW;\n"
+    }
+    val grantRO =  for (st ← stmts) yield {
+      s"GRANT SELECT ON RGC_ADM.${st.table} TO RGC_ROLE_RO;\n"
+    }
+    schema1 +: (grantRW ++ grantRO)
+  }
+  def emitSynonyms(stmts: Seq[CreateStmt]) = {
+    val schema1 = "-- Synonyms\nALTER SESSION SET CURRENT_SCHEMA = RGC_WEB;\n"
+    val synonyms = for (st ← stmts) yield {
+      s"CREATE OR REPLACE  SYNONYM ${st.table} FOR RGC_ADM. ${st.table};\n"
+    }
+    schema1 +: synonyms :+ "ALTER SESSION SET CURRENT_SCHEMA = RGC_ADM;\n"
+  }
   def emitALters(alters: Seq[Comparator.AlterTable]): Seq[String] = alters.map { x ⇒ x.emit + "\n" }
   def emitALtersTabs(alters: Seq[AlterTableStmt]): Seq[String] = alters.map { x ⇒ x.emit + "\n\n" }
   def emitCreIdx(ctxStmts: Seq[CreateIndexStmt]): Seq[String] = ctxStmts.map { ctx ⇒ ctx.emit + "\n\n" }
@@ -50,6 +67,8 @@ object SQLDiff extends App {
     println(s"${sourceStmts.get.size} source statetments parsed")
     //    val targetStmts = parser.parse(sqlTarget)
     println(s"${targetStmts.get.size} target statetments parsed")
+    // Initial settings
+    writer.write("\nALTER SESSION SET NLS_DATE_FORMAT = 'YYYY-MM-DD-HH24.MI.ss';\n\n")
     // Diff create tables
     val newTabs = Comparator.findNewTables(sourceStmts, targetStmts)
     writer.write(emitNew(newTabs) mkString)
@@ -75,37 +94,41 @@ object SQLDiff extends App {
     val mdb = MemoryDB(sourceStmts.get, targetStmts.get)
     //  val exludeTabs = Seq("APPRESOURCE", "KEYSERVER", "PRODUCTPROVIDER")
     val exludeTabs = Seq(
-        /*"KEYSERVER", */
-        "CREOLERULESETEDITACTION",
-        "EXTERNALUSER",
-        "POSITION",
-        "ORGANISATIONUNIT",
-        "USERS",
-        "PRODUCTPROVIDER", 
-        "POSITIONHOLDERLINK",
-        "GOAL",
-        "OUTCOME",
-        "SERVICESUPPLIER",
-        "INFORMATIONPROVIDER",
-        "PLANTEMPLATE",
-        "PLANITEM",
-        "EMPLOYER",
-        "PERSON",
-        "UTILITY",
-        "PROVIDERPARTY",
-        "SUBGOAL",
-        "PRECEDENTCHANGESET")
+      /*"KEYSERVER", */
+      "CREOLERULESETEDITACTION",
+      "EXTERNALUSER",
+      "POSITION",
+      "ORGANISATIONUNIT",
+      "USERS",
+      "PRODUCTPROVIDER",
+      "POSITIONHOLDERLINK",
+      "GOAL",
+      "OUTCOME",
+      "SERVICESUPPLIER",
+      "INFORMATIONPROVIDER",
+      "PLANTEMPLATE",
+      "PLANITEM",
+      "EMPLOYER",
+      "PERSON",
+      "UTILITY",
+      "PROVIDERPARTY",
+      "SUBGOAL",
+      "PRECEDENTCHANGESET")
     val exludedDiffFields = Seq("LASTWRITTEN", "FRCEDREIDXTIMESTMP", "SUBSCRIPTIONDATETIME", "CREATEDDATETIME", "CREATEDON", "LASTUPDATED", "LASTWRITTEN")
     val deltaOutName = outputFolder.getPath + "/deltaData.sql"
     val deltaWriter = new BufferedWriter(new FileWriter(deltaOutName))
     val diff = mdb.diffAndWrite(targetStmts, Option(MemoryDB.ExcludeOption(exludeTabs, exludedDiffFields)), deltaWriter)
+    // Grants i sinonims
+    writer.write(emitGrants(newTabs).mkString)
+    writer.write(emitSynonyms(newTabs).mkString)
     deltaWriter.close
+    // 
     println(s"${diff.size} delta inserts")
     // LOB DATA
-     // val sourceLobs = LobReadFactory(sLobPath, "/var/lib/jenkins/workspace/SIREC-BuildDB-CurrentAndTarget/source_build/")
-   // val targetLobs = LobReadFactory(tLobPath, "/var/lib/jenkins/workspace/SIREC-BuildDB-CurrentAndTarget/target_build/")
-   // val outLobXml = LobComparator.compare(sourceLobs, targetLobs, mdb.pks)
-   // XML.save(s"${outFolder}/LobInsert.xml", outLobXml, "UTF-8", true, null)
+    // val sourceLobs = LobReadFactory(sLobPath, "/var/lib/jenkins/workspace/SIREC-BuildDB-CurrentAndTarget/source_build/")
+    // val targetLobs = LobReadFactory(tLobPath, "/var/lib/jenkins/workspace/SIREC-BuildDB-CurrentAndTarget/target_build/")
+    // val outLobXml = LobComparator.compare(sourceLobs, targetLobs, mdb.pks)
+    // XML.save(s"${outFolder}/LobInsert.xml", outLobXml, "UTF-8", true, null)
   }
   println(s"Total time $totalTime ms")
 }

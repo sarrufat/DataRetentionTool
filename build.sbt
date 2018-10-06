@@ -3,7 +3,7 @@
 lazy val root = (project in file(".")).
   settings(
     name := "DataRetentionTool",
-    version := "1.0",
+    version := "1.1.RGC",
     scalaVersion := "2.11.8"
   )
 
@@ -30,4 +30,6 @@ libraryDependencies += "com.typesafe" % "config" % "1.2.1"
 
 libraryDependencies += "com.storm-enroute" %% "scalameter-core" % "0.8.2"
 
+EclipseKeys.withBundledScalaContainers := false
 
+retrieveManaged := true

@@ -9,3 +9,4 @@ target/
 .worksheet/
 /tmp.sql
 /testMemory.sql
+lib_managed/
